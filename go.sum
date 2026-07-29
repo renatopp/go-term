@@ -1,5 +1,3 @@
-github.com/renatopp/go-x v0.3.0 h1:ZAXqKt+r6fBvIwAr5cWNLR2CQysmnw0cCSmG+f/gmm8=
-github.com/renatopp/go-x v0.3.0/go.mod h1:nMBtOibeWfVndqv4JlObKOIbXH6W5+z6FKC2fGu+b6U=
 golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=
 golang.org/x/sys v0.47.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/term v0.45.0 h1:NwWyBmoJCbfTHpxrWoZ9C6/VxOf7ic219I8xZZFdrf0=

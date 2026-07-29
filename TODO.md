@@ -2,9 +2,11 @@
 [ ] Background and Forecolor Detection (dark/light mode)
 [ ] UI
   [x] Decide layouting (~~retained~~ vs immediate mode)
-        But consider that I want to be able to create widgets as standalone (`NewProgressBar().WithX().Run`) and via immediate rendering. May also want to use the layouting functions to just print stuff once and exit (like a report solution).
-  [ ] Program/layout event loop
-  [ ] Buffer structure
+  [x] Program/layout event loop
+  [x] Buffer structure
+  [ ] Mouse and Keyboard events
+    [ ] Global raw stdin listeners and fanout
+  [ ] Layouting
   [ ] Widgets
     [ ] Content
       [ ] Boxes

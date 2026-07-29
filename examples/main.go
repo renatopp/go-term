@@ -1,32 +1,11 @@
 package main
 
 import (
-	"time"
-
 	"github.com/renatopp/go-term/term"
-	"github.com/renatopp/go-term/ui"
 )
 
 func main() {
-	term.EnterAlternateScreen()
-	defer term.ExitAlternateScreen()
-
-	term.ClearScreen()
-
-	row := ui.Row().
-		WithJustify(ui.JustifySpaceBetween).
-		WithItem(
-			ui.NewItem(term.NewLabel("Left")).WithGrow(0),
-			ui.NewItem(term.NewLabel("Center")).WithGrow(1),
-			ui.NewItem(term.NewLabel("Right")).WithGrow(0),
-		)
-
-	w, h := term.ForceGetScreenSize()
-	for _, line := range row.Render(w, h) {
-		print(line)
-	}
-
-	time.Sleep(2 * time.Second)
+	term.NewProgram().Run()
 }
 
 // 	term.EnterAlternateScreen()
