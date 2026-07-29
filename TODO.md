@@ -1,43 +1,37 @@
-- Implement Merge function on Style
-- Implement background and foreground color detection (dark/light mode)
-
-
 
 [ ] Background and Forecolor Detection (dark/light mode)
-
-[x] Layouts
-  [x] Flexbox (ui.Container, ui.Item, ui.Component, ui.Sized)
+[ ] UI
+  [x] Decide layouting (~~retained~~ vs immediate mode)
+        But consider that I want to be able to create widgets as standalone (`NewProgressBar().WithX().Run`) and via immediate rendering. May also want to use the layouting functions to just print stuff once and exit (like a report solution).
   [ ] Program/layout event loop
-  
-[ ] Widgets
-  [ ] Content
-    [ ] Boxes
-    [ ] Lists
-    [ ] Tables
-    [ ] Trees
-    [ ] Graphs
-  [ ] Dynamic
-    [ ] Spinners
-    [ ] Progress bars
-    [ ] Counters
-    [ ] Timers
-    [ ] Badges
-    [ ] Gauges
-  [ ] Inputs
-    [ ] Confirm prompt
-    [ ] Input prompt
-    [ ] Select prompt
-    [ ] Multi-select prompt
-    [ ] Password prompt
-    [ ] Number prompt
-    [ ] Fuzzy search prompt
-
+  [ ] Buffer structure
+  [ ] Widgets
+    [ ] Content
+      [ ] Boxes
+      [ ] Lists
+      [ ] Tables
+      [ ] Trees
+      [ ] Graphs
+    [ ] Dynamic
+      [ ] Spinners
+      [ ] Progress bars
+      [ ] Counters
+      [ ] Timers
+      [ ] Badges
+      [ ] Gauges
+    [ ] Inputs
+      [ ] Confirm prompt
+      [ ] Input prompt
+      [ ] Select prompt
+      [ ] Multi-select prompt
+      [ ] Password prompt
+      [ ] Number prompt
+      [ ] Fuzzy search prompt
 [x] Styles
   [x] Colors Types and Initialization (ansi, 256, 24-bit, hex)
   [x] Color Constants
   [x] Style Type
   [x] Style Constants
-  
 [x] Cursor
   [x] Hide cursor
   [x] Show cursor
@@ -45,7 +39,6 @@
   [x] Restore cursor position
   [x] Move cursor (up, down, left, right, to)
   [x] Get cursor position
-
 [x] Screen
   [x] Get size (width, height)
   [x] Alternate screen (enter, exit)

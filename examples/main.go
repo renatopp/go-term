@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/renatopp/go-term"
+	"github.com/renatopp/go-term/term"
 	"github.com/renatopp/go-term/ui"
 )
 
