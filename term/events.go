@@ -6,6 +6,16 @@ import (
 	"sync/atomic"
 )
 
+// Event types published on the package-level bus by the stdin reader
+// started in EnterRawMode.
+const (
+	EventKey            = "key"
+	EventMouse          = "mouse"
+	EventCursorPosition = "cursor-position"
+	EventResize         = "resize"
+	EventSignal         = "signal"
+)
+
 var listenerId = atomic.Uint64{}
 
 // Event is a value flowing through the event loop's queue and the package
@@ -44,6 +54,10 @@ type MouseEvent struct {
 	Ctrl   bool
 }
 
+type ResizeEvent struct {
+	Width, Height int
+}
+
 type eventBus struct {
 	mu        sync.Mutex
 	listeners map[string]map[uint64]func(Event)
@@ -53,6 +67,16 @@ func newEventBus() *eventBus {
 	return &eventBus{
 		listeners: make(map[string]map[uint64]func(Event)),
 	}
+}
+
+func (eb *eventBus) CountListeners(eventType string) int {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
+	if listeners, exists := eb.listeners[eventType]; exists {
+		return len(listeners)
+	}
+	return 0
 }
 
 func (eb *eventBus) Subscribe(eventType string, listener func(Event)) uint64 {
@@ -87,11 +111,18 @@ func (eb *eventBus) UnsubscribeAll(eventType string) {
 
 func (eb *eventBus) Publish(eventType string, event Event) {
 	eb.mu.Lock()
-	listeners, exists := eb.listeners[eventType]
+	listeners1, exists1 := eb.listeners[eventType]
+	listeners2, exists2 := eb.listeners["*"]
 	eb.mu.Unlock()
 
-	if exists {
-		for _, listener := range listeners {
+	if exists1 {
+		for _, listener := range listeners1 {
+			listener(event)
+		}
+	}
+
+	if exists2 {
+		for _, listener := range listeners2 {
 			listener(event)
 		}
 	}

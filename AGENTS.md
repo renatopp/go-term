@@ -14,6 +14,8 @@ Internal Coding Rules:
 - Public functions before private functions
 - Types before functions, but struct declaraction should be followed by its factory function
 - Functions that return (value, error) must have Force* function variants that return (value) ignoring the error, if sementically possible
+  - No need for Force* in functions that only return error
 - Unit tests for file <name> should be in file <name>_test.go, in the same package as <name>
 - For builder pattern, prefer With* methods over Set* methods, returning the builder type for chaining
   - Use As* methods for booleans (eg: AsVisible(bool))
+- Avoid creating smaller functions that are only used once, unless they improve readability

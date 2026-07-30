@@ -6,26 +6,65 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/term"
 )
 
-var writer io.Writer = os.Stdout
-var stdin uintptr = os.Stdin.Fd()
-var stdout uintptr = os.Stdout.Fd()
+// bus Event bus for publishing and subscribing to terminal events (keyboard, mouse, cursor position).
 var bus = newEventBus()
-var rawModeState *State
-var stopStdinReader func()
-var stdinSource io.Reader = os.Stdin
-var resizePollInterval = 100 * time.Millisecond
-var screenSizeGetter = GetScreenSize
+
+// mu is a mutex to protect concurrent access to terminal state and settings.
+var mu sync.Mutex
+
+// stdout is the output stdout for terminal control sequences and messages.
+var stdout io.Writer = os.Stdout
+
+// stdin is the input stdin for terminal events (keyboard, mouse, cursor position).
+var stdin io.Reader = os.Stdin
+
+// stdoutFile are the file descriptors to check terminal size.
+var stdoutFile uintptr = os.Stdout.Fd()
+
+// stdinFile are the file desriptors to watch for input events (keyboard, mouse,
+// cursor position) and check terminal.
+var stdinFile uintptr = os.Stdin.Fd()
+
+// rawModeState is the stored state before entering raw mode, used to restore
+// terminal settings on exit.
+var rawModeState *State = nil
+
+// colorLevel is the detected color mode of the terminal (None, Basic, 256, TrueColor).
 var colorLevel ColorMode = ColorModeNone
 
+// stopStdinReader is the function to stop reading stdin events, set when
+// EnterRawMode is called and cleared on ExitRawMode.
+var stopStdinReader func() = nil
+
+// stopResizeWatcher is the function to stop watching for terminal resize
+// events, set when StartResizeWatcher is called and cleared on StopResizeWatcher.
+var stopResizeWatcher func() = nil
+
+// resizePollInterval is the interval at which terminal size is polled for changes.
+const resizePollInterval = 100 * time.Millisecond
+
+// State is an alias for term.State, representing the terminal state for raw
+// mode and restoration.
 type State = term.State
 
 func init() {
 	colorLevel = detectColorMode()
+	startResizeWatcher()
+}
+
+// write writes the given string to the configured stdout and returns any error
+// encountered.
+func write(s string) error {
+	mu.Lock()
+	defer mu.Unlock()
+	_, err := stdout.Write([]byte(s))
+	return err
 }
 
 // startStdinReader reads stdin and publishes decoded events (MouseEvent,
@@ -37,8 +76,12 @@ func init() {
 // ultimately reclaims it, the same tradeoff already made for other blocking
 // stdin reads in this package.
 func startStdinReader() (stop func()) {
+	if stopStdinReader != nil {
+		return stopStdinReader
+	}
+
 	done := make(chan struct{})
-	r := bufio.NewReader(stdinSource)
+	r := bufio.NewReader(stdin)
 
 	go func() {
 		for {
@@ -58,9 +101,37 @@ func startStdinReader() (stop func()) {
 	return func() { close(done) }
 }
 
-func write(s string) error {
-	_, err := writer.Write([]byte(s))
-	return err
+// startResizeWatcher polls the terminal size and publishes ResizeEvent on the
+// package bus whenever it changes. Call the returned stop function to stop
+// polling.
+func startResizeWatcher() (stop func()) {
+	if stopResizeWatcher != nil {
+		return stopResizeWatcher
+	}
+
+	done := make(chan struct{})
+	lastWidth, lastHeight, _ := GetScreenSize()
+
+	go func() {
+		ticker := time.NewTicker(resizePollInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				width, height, err := GetScreenSize()
+				if err != nil || (width == lastWidth && height == lastHeight) {
+					continue
+				}
+				lastWidth, lastHeight = width, height
+				bus.Publish(EventResize, ResizeEvent{Width: width, Height: height})
+			}
+		}
+	}()
+
+	return func() { close(done) }
 }
 
 // readInputEvent reads and decodes the next event from r: a key press, a
@@ -76,24 +147,6 @@ func readInputEvent(r *bufio.Reader) (eventType string, event Event, err error) 
 	}
 
 	return EventKey, decodeControlKey(ch), nil
-}
-
-// decodeControlKey decodes a single non-escape rune read from stdin into a
-// KeyEvent: named keys (enter, tab, backspace), Ctrl+letter combinations
-// (bytes 0x01-0x1a), or a plain rune.
-func decodeControlKey(ch rune) KeyEvent {
-	switch ch {
-	case '\r', '\n':
-		return KeyEvent{Type: KeyEnter}
-	case '\t':
-		return KeyEvent{Type: KeyTab}
-	case 0x7f, 0x08:
-		return KeyEvent{Type: KeyBackspace}
-	}
-	if ch >= 1 && ch <= 26 {
-		return KeyEvent{Type: KeyRune, Rune: 'a' + ch - 1, Ctrl: true}
-	}
-	return KeyEvent{Type: KeyRune, Rune: ch}
 }
 
 // readEscapeSequence decodes the byte(s) following an ESC (0x1b) already
@@ -147,6 +200,26 @@ func readEscapeSequence(r *bufio.Reader) (eventType string, event Event, err err
 	return decodeCSI(string(params), final)
 }
 
+// decodeControlKey decodes a single non-escape rune read from stdin into a
+// KeyEvent: named keys (enter, tab, backspace), Ctrl+letter combinations
+// (bytes 0x01-0x1a), or a plain rune.
+func decodeControlKey(ch rune) KeyEvent {
+	switch ch {
+	case '\r', '\n':
+		return KeyEvent{Type: KeyEnter}
+	case '\t':
+		return KeyEvent{Type: KeyTab}
+	case 0x7f, 0x08:
+		return KeyEvent{Type: KeyBackspace}
+	}
+	if ch >= 1 && ch <= 26 {
+		return KeyEvent{Type: KeyRune, Rune: 'a' + ch - 1, Ctrl: true}
+	}
+	return KeyEvent{Type: KeyRune, Rune: ch}
+}
+
+// isCSIParamRune returns true if ch is a valid character in a CSI sequence's
+// parameter string: a digit or semicolon.
 func isCSIParamRune(ch rune) bool {
 	return (ch >= '0' && ch <= '9') || ch == ';'
 }
@@ -180,6 +253,8 @@ func decodeCSI(params string, final rune) (eventType string, event Event, err er
 	return EventKey, KeyEvent{Type: KeyEsc}, nil
 }
 
+// decodeTildeKey decodes the parameter string of a CSI ~ sequence into a
+// KeyEvent. Returns false if the parameter string is unrecognized.
 func decodeTildeKey(params string) (KeyEvent, bool) {
 	switch params {
 	case "1", "7":
@@ -220,6 +295,9 @@ func parseCursorPosition(params string) (row, col int, ok bool) {
 	return row, col, true
 }
 
+// parseSGRMouse reads the parameter string of an SGR mouse sequence from r
+// until the terminating 'M' or 'm' is found. It returns the decoded MouseEvent
+// and whether the sequence was valid.
 func parseSGRMouse(r *bufio.Reader) (event MouseEvent, ok bool, err error) {
 	var params strings.Builder
 	for {
@@ -280,6 +358,7 @@ func decodeSGRMouse(params string, pressed bool) (MouseEvent, bool) {
 	return event, true
 }
 
+// mouseButtonFromCb returns the MouseButton corresponding to the lower two bits of cb.
 func mouseButtonFromCb(cb int) MouseButton {
 	switch cb & 3 {
 	case 0:
@@ -290,5 +369,86 @@ func mouseButtonFromCb(cb int) MouseButton {
 		return MouseButtonRight
 	default:
 		return MouseButtonNone
+	}
+}
+
+// detectColorMode detects the terminal's color mode based on environment
+// variables and terminal capabilities.
+func detectColorMode() ColorMode {
+	// FORCE_COLOR overrides everything.
+	if v, ok := os.LookupEnv("FORCE_COLOR"); ok {
+		switch strings.TrimSpace(strings.ToLower(v)) {
+		case "0", "false":
+			return ColorModeNone
+		case "3":
+			return ColorModeTrue
+		case "2":
+			return ColorMode256
+		case "1", "", "true":
+			return ColorModeAnsi
+		default:
+			if n, err := strconv.Atoi(v); err == nil {
+				switch {
+				case n >= 3:
+					return ColorModeTrue
+				case n == 2:
+					return ColorMode256
+				case n >= 1:
+					return ColorModeAnsi
+				}
+			}
+			return ColorModeAnsi
+		}
+	}
+
+	// NO_COLOR always disables colors.
+	if _, ok := os.LookupEnv("NO_COLOR"); ok {
+		return ColorModeNone
+	}
+
+	// BSD/macOS convention.
+	if os.Getenv("CLICOLOR_FORCE") != "" &&
+		os.Getenv("CLICOLOR_FORCE") != "0" {
+		return ColorModeAnsi
+	}
+
+	if os.Getenv("CLICOLOR") == "0" {
+		return ColorModeNone
+	}
+
+	// Not writing to a terminal.
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		return ColorModeNone
+	}
+
+	// TrueColor hint.
+	switch strings.ToLower(os.Getenv("COLORTERM")) {
+	case "truecolor", "24bit":
+		return ColorModeTrue
+	}
+
+	termEnv := strings.ToLower(os.Getenv("TERM"))
+	windowsTerm := strings.ToLower(os.Getenv("WT_SESSION"))
+
+	switch {
+	case termEnv == "", termEnv == "dumb":
+		return ColorModeNone
+
+	case strings.Contains(termEnv, "direct"):
+		return ColorModeTrue
+
+	case windowsTerm != "":
+		return ColorModeTrue
+
+	case strings.Contains(termEnv, "kitty"),
+		strings.Contains(termEnv, "wezterm"),
+		strings.Contains(termEnv, "ghostty"):
+		return ColorModeTrue
+
+	case strings.Contains(termEnv, "256color"):
+		return ColorMode256
+
+	default:
+		return ColorModeAnsi
 	}
 }

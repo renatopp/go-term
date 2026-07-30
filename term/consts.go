@@ -1,13 +1,5 @@
 package term
 
-// Event types published on the package-level bus by the stdin reader
-// started in EnterRawMode.
-const (
-	EventKey            = "key"
-	EventMouse          = "mouse"
-	EventCursorPosition = "cursor-position"
-)
-
 // KeyType identifies a key reported by KeyEvent. KeyRune covers ordinary
 // character keys (including Ctrl/Alt combinations, reported via the Ctrl and
 // Alt fields); the rest name keys with no printable rune of their own.

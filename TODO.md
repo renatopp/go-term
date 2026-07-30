@@ -1,4 +1,9 @@
 
+[ ] Review
+  [x] Add OnKeyboard
+  [x] Refactor OnResize
+  [x] Add OnEvent
+  [x] Add signal listening (SIGWINCH, SIGINT, etc.)
 [ ] Background and Forecolor Detection (dark/light mode)
 [ ] UI
   [x] Decide layouting (~~retained~~ vs immediate mode)
