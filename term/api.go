@@ -33,6 +33,12 @@ func SetStdout(f *os.File) {
 // the package bus. Call ExitRawMode to restore the terminal and stop
 // reading.
 //
+// It also negotiates the richest keyboard-modifier protocol the terminal
+// supports (Kitty keyboard protocol, falling back to xterm's
+// modifyOtherKeys), so KeyEvent can report Ctrl/Alt/Shift on keys that plain
+// VT100 input has no room for, such as Enter, Tab, Backspace, and Esc. This
+// adds a short (up to 100ms) delay while probing for Kitty support.
+//
 // Do not read from stdin while in raw mode, as it will interfere with the
 // package's reading and event publishing. Use event callbacks instead.
 func EnterRawMode() error {
@@ -46,6 +52,7 @@ func EnterRawMode() error {
 		return err
 	}
 	rawModeState = state
+	activeKeyboardProtocol = negotiateKeyboardProtocol()
 	stopStdinReader = startStdinReader()
 	return nil
 }
@@ -61,6 +68,8 @@ func ExitRawMode() error {
 		stopStdinReader()
 		stopStdinReader = nil
 	}
+	disableKeyboardProtocol(activeKeyboardProtocol)
+	activeKeyboardProtocol = keyboardProtocolNone
 	return RestoreTerminalState(state)
 }
 
@@ -541,11 +550,7 @@ func OnKey(fn func(e KeyEvent)) (stop func()) {
 // callbacks, so fn may receive events that are not directly related to stdin
 // input.
 func OnEvent(fn func(e Event)) (stop func()) {
-	id := bus.Subscribe("*", func(event Event) {
-		if e, ok := event.(KeyEvent); ok {
-			fn(e)
-		}
-	})
+	id := bus.Subscribe("*", fn)
 	return func() { bus.Unsubscribe("*", id) }
 }
 

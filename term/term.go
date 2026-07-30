@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"golang.org/x/term"
 )
@@ -49,6 +50,23 @@ var stopResizeWatcher func() = nil
 // resizePollInterval is the interval at which terminal size is polled for changes.
 const resizePollInterval = 100 * time.Millisecond
 
+// activeKeyboardProtocol is the keyboard-modifier protocol negotiated by the
+// most recent EnterRawMode call, used by ExitRawMode to send the matching
+// disable sequence.
+var activeKeyboardProtocol = keyboardProtocolNone
+
+// kittyProbeTimeout bounds how long negotiateKeyboardProtocol waits for a
+// reply to the Kitty keyboard protocol query.
+const kittyProbeTimeout = 100 * time.Millisecond
+
+const (
+	kittyQuerySeq             = "\x1b[?u"
+	kittyEnableSeq            = "\x1b[>1u"
+	kittyDisableSeq           = "\x1b[<1u"
+	modifyOtherKeysEnableSeq  = "\x1b[>4;2m"
+	modifyOtherKeysDisableSeq = "\x1b[>4;0m"
+)
+
 // State is an alias for term.State, representing the terminal state for raw
 // mode and restoration.
 type State = term.State
@@ -65,6 +83,66 @@ func write(s string) error {
 	defer mu.Unlock()
 	_, err := stdout.Write([]byte(s))
 	return err
+}
+
+// negotiateKeyboardProtocol probes the terminal for Kitty keyboard protocol
+// support and enables the richest keyboard-modifier protocol available, so
+// Ctrl/Alt/Shift can be reported for keys that carry no room for modifiers
+// in plain VT100 input (Enter, Tab, Backspace, Esc, Space, and printable
+// keys). Falls back to xterm's modifyOtherKeys when Kitty isn't supported,
+// or can't be probed because stdin isn't a file, or the file doesn't
+// support read deadlines on this platform.
+//
+// The probe reads directly from stdin before startStdinReader begins; a
+// keystroke racing the terminal's own query reply within the probe window
+// is dropped, a known tradeoff for a synchronous capability check done once
+// per EnterRawMode call.
+//
+// Must be called while holding mu (see EnterRawMode), and writes to stdout
+// directly rather than through write to avoid deadlocking on it.
+func negotiateKeyboardProtocol() keyboardProtocol {
+	f, ok := stdin.(*os.File)
+	if !ok {
+		stdout.Write([]byte(modifyOtherKeysEnableSeq))
+		return keyboardProtocolModifyOtherKeys
+	}
+
+	stdout.Write([]byte(kittyQuerySeq))
+	if err := f.SetReadDeadline(time.Now().Add(kittyProbeTimeout)); err != nil {
+		stdout.Write([]byte(modifyOtherKeysEnableSeq))
+		return keyboardProtocolModifyOtherKeys
+	}
+
+	buf := make([]byte, 32)
+	n, err := f.Read(buf)
+	f.SetReadDeadline(time.Time{})
+
+	if err == nil && isKittyQueryReply(buf[:n]) {
+		stdout.Write([]byte(kittyEnableSeq))
+		return keyboardProtocolKitty
+	}
+
+	stdout.Write([]byte(modifyOtherKeysEnableSeq))
+	return keyboardProtocolModifyOtherKeys
+}
+
+// isKittyQueryReply reports whether b looks like a Kitty keyboard protocol
+// query reply (CSI ? flags u).
+func isKittyQueryReply(b []byte) bool {
+	return len(b) >= 3 && b[0] == 0x1b && b[1] == '[' && b[2] == '?'
+}
+
+// disableKeyboardProtocol sends the disable sequence matching the protocol
+// negotiated by negotiateKeyboardProtocol, restoring the terminal's default
+// key reporting. Writes to stdout directly rather than through write to
+// avoid deadlocking on it; see ExitRawMode.
+func disableKeyboardProtocol(p keyboardProtocol) {
+	switch p {
+	case keyboardProtocolKitty:
+		stdout.Write([]byte(kittyDisableSeq))
+	case keyboardProtocolModifyOtherKeys:
+		stdout.Write([]byte(modifyOtherKeysDisableSeq))
+	}
 }
 
 // startStdinReader reads stdin and publishes decoded events (MouseEvent,
@@ -170,7 +248,7 @@ func readEscapeSequence(r *bufio.Reader) (eventType string, event Event, err err
 	}
 
 	if ch != '[' {
-		return EventKey, KeyEvent{Type: KeyRune, Rune: ch, Alt: true}, nil
+		return EventKey, KeyEvent{Type: KeyRune, Rune: ch, Alt: true, Shift: isShiftedRune(ch)}, nil
 	}
 
 	final, _, err := r.ReadRune()
@@ -215,32 +293,63 @@ func decodeControlKey(ch rune) KeyEvent {
 	if ch >= 1 && ch <= 26 {
 		return KeyEvent{Type: KeyRune, Rune: 'a' + ch - 1, Ctrl: true}
 	}
-	return KeyEvent{Type: KeyRune, Rune: ch}
+	return KeyEvent{Type: KeyRune, Rune: ch, Shift: isShiftedRune(ch)}
+}
+
+// isShiftedRune reports whether ch is a character the terminal only
+// produces when Shift (or Caps Lock) is held, letting a Shift signal be
+// recovered for keys read without an escape sequence, where the byte itself
+// carries no separate modifier bit.
+func isShiftedRune(ch rune) bool {
+	return unicode.IsUpper(ch)
 }
 
 // isCSIParamRune returns true if ch is a valid character in a CSI sequence's
-// parameter string: a digit or semicolon.
+// parameter string: a digit, semicolon, or colon (the sub-parameter
+// separator used by the Kitty keyboard protocol).
 func isCSIParamRune(ch rune) bool {
-	return (ch >= '0' && ch <= '9') || ch == ';'
+	return (ch >= '0' && ch <= '9') || ch == ';' || ch == ':'
+}
+
+// arrowKeys maps a CSI letter final byte to the named key it reports.
+var arrowKeys = map[rune]KeyType{
+	'A': KeyUp,
+	'B': KeyDown,
+	'C': KeyRight,
+	'D': KeyLeft,
+	'H': KeyHome,
+	'F': KeyEnd,
+}
+
+// namedKeyCodes maps the numeric key codes used by both the Kitty keyboard
+// protocol and xterm's modifyOtherKeys to this package's named keys.
+var namedKeyCodes = map[int]KeyType{
+	13:  KeyEnter,
+	9:   KeyTab,
+	127: KeyBackspace,
+	27:  KeyEsc,
+}
+
+// tildeKeys maps a CSI ~ sequence's leading numeric parameter to the named
+// key it reports.
+var tildeKeys = map[int]KeyType{
+	1: KeyHome,
+	7: KeyHome,
+	2: KeyInsert,
+	3: KeyDelete,
+	4: KeyEnd,
+	8: KeyEnd,
+	5: KeyPgUp,
+	6: KeyPgDown,
 }
 
 // decodeCSI decodes a CSI sequence's parameter string and final byte into an
-// event. params is the accumulated digits/semicolons; final is the byte
-// that terminated the sequence.
+// event. params is the accumulated digits/semicolons/colons; final is the
+// byte that terminated the sequence.
 func decodeCSI(params string, final rune) (eventType string, event Event, err error) {
 	switch final {
-	case 'A':
-		return EventKey, KeyEvent{Type: KeyUp}, nil
-	case 'B':
-		return EventKey, KeyEvent{Type: KeyDown}, nil
-	case 'C':
-		return EventKey, KeyEvent{Type: KeyRight}, nil
-	case 'D':
-		return EventKey, KeyEvent{Type: KeyLeft}, nil
-	case 'H':
-		return EventKey, KeyEvent{Type: KeyHome}, nil
-	case 'F':
-		return EventKey, KeyEvent{Type: KeyEnd}, nil
+	case 'A', 'B', 'C', 'D', 'H', 'F':
+		return EventKey, decodeArrowKey(params, final), nil
 	case 'R':
 		if row, col, ok := parseCursorPosition(params); ok {
 			return EventCursorPosition, CursorPositionEvent{Row: row, Col: col}, nil
@@ -249,28 +358,105 @@ func decodeCSI(params string, final rune) (eventType string, event Event, err er
 		if key, ok := decodeTildeKey(params); ok {
 			return EventKey, key, nil
 		}
+	case 'u':
+		if key, ok := decodeKittyKey(params); ok {
+			return EventKey, key, nil
+		}
 	}
 	return EventKey, KeyEvent{Type: KeyEsc}, nil
 }
 
-// decodeTildeKey decodes the parameter string of a CSI ~ sequence into a
-// KeyEvent. Returns false if the parameter string is unrecognized.
-func decodeTildeKey(params string) (KeyEvent, bool) {
-	switch params {
-	case "1", "7":
-		return KeyEvent{Type: KeyHome}, true
-	case "2":
-		return KeyEvent{Type: KeyInsert}, true
-	case "3":
-		return KeyEvent{Type: KeyDelete}, true
-	case "4", "8":
-		return KeyEvent{Type: KeyEnd}, true
-	case "5":
-		return KeyEvent{Type: KeyPgUp}, true
-	case "6":
-		return KeyEvent{Type: KeyPgDown}, true
+// splitParams splits a CSI parameter string on ';' into its numeric fields.
+// Each field may itself carry ':'-separated sub-parameters (as used by the
+// Kitty keyboard protocol); only the first sub-parameter of each field is
+// used. Unparsable or empty fields decode to 0.
+func splitParams(params string) []int {
+	if params == "" {
+		return nil
 	}
-	return KeyEvent{}, false
+	fields := strings.Split(params, ";")
+	nums := make([]int, len(fields))
+	for i, f := range fields {
+		if colon := strings.IndexByte(f, ':'); colon >= 0 {
+			f = f[:colon]
+		}
+		nums[i], _ = strconv.Atoi(f)
+	}
+	return nums
+}
+
+// decodeModifier decodes an xterm-style modifier parameter (1 + bitmask)
+// into Shift, Alt, and Ctrl. A mod of 0 or less (absent) reports no
+// modifiers.
+func decodeModifier(mod int) (shift, alt, ctrl bool) {
+	if mod <= 0 {
+		return false, false, false
+	}
+	bits := mod - 1
+	return bits&1 != 0, bits&2 != 0, bits&4 != 0
+}
+
+// decodeArrowKey decodes an arrow/Home/End CSI sequence's parameter string
+// (empty, or "1;mod" carrying an xterm modifier) into a KeyEvent.
+func decodeArrowKey(params string, final rune) KeyEvent {
+	event := KeyEvent{Type: arrowKeys[final]}
+	if nums := splitParams(params); len(nums) >= 2 {
+		event.Shift, event.Alt, event.Ctrl = decodeModifier(nums[1])
+	}
+	return event
+}
+
+// keyEventFromCode decodes a Kitty/modifyOtherKeys numeric key code into a
+// KeyEvent: a named key for control keys with no printable rune, or the rune
+// itself otherwise.
+func keyEventFromCode(code int) KeyEvent {
+	if keyType, ok := namedKeyCodes[code]; ok {
+		return KeyEvent{Type: keyType}
+	}
+	return KeyEvent{Type: KeyRune, Rune: rune(code)}
+}
+
+// decodeTildeKey decodes the parameter string of a CSI ~ sequence into a
+// KeyEvent: a legacy nav-key id (optionally followed by an xterm modifier
+// field), or an xterm modifyOtherKeys sequence ("27;mod;code"). Returns
+// false if the parameter string is unrecognized.
+func decodeTildeKey(params string) (KeyEvent, bool) {
+	nums := splitParams(params)
+	if len(nums) == 0 {
+		return KeyEvent{}, false
+	}
+
+	if len(nums) == 3 && nums[0] == 27 {
+		event := keyEventFromCode(nums[2])
+		event.Shift, event.Alt, event.Ctrl = decodeModifier(nums[1])
+		return event, true
+	}
+
+	keyType, ok := tildeKeys[nums[0]]
+	if !ok {
+		return KeyEvent{}, false
+	}
+	event := KeyEvent{Type: keyType}
+	if len(nums) >= 2 {
+		event.Shift, event.Alt, event.Ctrl = decodeModifier(nums[1])
+	}
+	return event, true
+}
+
+// decodeKittyKey decodes the parameter string of a CSI u sequence (Kitty
+// keyboard protocol) into a KeyEvent. Returns false if the parameter string
+// is unrecognized.
+func decodeKittyKey(params string) (KeyEvent, bool) {
+	nums := splitParams(params)
+	if len(nums) == 0 {
+		return KeyEvent{}, false
+	}
+
+	event := keyEventFromCode(nums[0])
+	if len(nums) >= 2 {
+		event.Shift, event.Alt, event.Ctrl = decodeModifier(nums[1])
+	}
+	return event, true
 }
 
 // parseCursorPosition parses the "row;col" parameter string of a cursor
@@ -330,8 +516,8 @@ func decodeSGRMouse(params string, pressed bool) (MouseEvent, bool) {
 	}
 
 	event := MouseEvent{
-		X:     cx - 1,
-		Y:     cy - 1,
+		X:     cx,
+		Y:     cy,
 		Shift: cb&4 != 0,
 		Alt:   cb&8 != 0,
 		Ctrl:  cb&16 != 0,

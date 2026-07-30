@@ -28,12 +28,22 @@ type SignalEvent struct {
 	Signal os.Signal
 }
 
-// KeyEvent reports a keyboard event read from stdin while in raw mode.
+// KeyEvent reports a keyboard event read from stdin while in raw mode. Ctrl
+// and Alt are always populated when the terminal reports them (Ctrl+letter,
+// Alt+key). Shift on a plain or Alt-combined rune is inferred from the
+// character's case (e.g. 'A' implies Shift, 'a' doesn't), so it can't be
+// told apart from Caps Lock and never applies to Ctrl+letter, whose control
+// byte carries no case. Shift on keys with no room for modifiers in plain
+// VT100 input otherwise (Enter, Tab, Backspace, Esc, Space, arrows, ...),
+// and Ctrl/Alt on those same keys, are only populated when the terminal
+// supports the Kitty keyboard protocol or xterm's modifyOtherKeys — see
+// EnterRawMode.
 type KeyEvent struct {
-	Type KeyType
-	Rune rune
-	Ctrl bool
-	Alt  bool
+	Type  KeyType
+	Rune  rune
+	Shift bool
+	Alt   bool
+	Ctrl  bool
 }
 
 // CursorPositionEvent reports the terminal's reply to a cursor position
@@ -43,8 +53,8 @@ type CursorPositionEvent struct {
 }
 
 // MouseEvent reports a mouse event: a button press/release, a drag while a
-// button is held, or a wheel scroll. X and Y are 0-based screen columns and
-// rows.
+// button is held, or a wheel scroll. X and Y are 1-based screen columns and
+// rows, consistent with CursorPositionEvent.
 type MouseEvent struct {
 	X, Y   int
 	Button MouseButton

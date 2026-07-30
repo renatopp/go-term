@@ -10,6 +10,9 @@ func main() {
 	term.EnterRawMode()
 	defer term.ExitRawMode()
 
+	term.EnableMouse()
+	defer term.DisableMouse()
+
 	close := make(chan bool)
 
 	term.OnEvent(func(e term.Event) {
@@ -20,8 +23,6 @@ func main() {
 				close <- true
 				return
 			}
-		case term.MouseEvent:
-			fmt.Printf("Mouse event: %+v\n", e)
 		}
 	})
 

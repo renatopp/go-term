@@ -1,8 +1,9 @@
 package term
 
 // KeyType identifies a key reported by KeyEvent. KeyRune covers ordinary
-// character keys (including Ctrl/Alt combinations, reported via the Ctrl and
-// Alt fields); the rest name keys with no printable rune of their own.
+// character keys (including Ctrl/Alt/Shift combinations, reported via the
+// Ctrl, Alt, and Shift fields); the rest name keys with no printable rune of
+// their own.
 type KeyType int
 
 const (
@@ -21,6 +22,16 @@ const (
 	KeyDown
 	KeyLeft
 	KeyRight
+)
+
+// keyboardProtocol identifies which keyboard-modifier reporting protocol is
+// active on the terminal, negotiated by EnterRawMode.
+type keyboardProtocol uint8
+
+const (
+	keyboardProtocolNone keyboardProtocol = iota
+	keyboardProtocolKitty
+	keyboardProtocolModifyOtherKeys
 )
 
 type MouseButton uint8
