@@ -5,7 +5,7 @@
   [x] Program/layout event loop
   [x] Buffer structure
   [ ] Mouse and Keyboard events
-    [ ] Global raw stdin listeners and fanout
+    [x] Global raw stdin listeners and fanout
   [ ] Layouting
   [ ] Widgets
     [ ] Content
