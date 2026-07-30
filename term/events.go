@@ -16,6 +16,59 @@ const (
 	EventSignal         = "signal"
 )
 
+// KeyType identifies a key reported by KeyEvent. KeyRune covers ordinary
+// character keys (including Ctrl/Alt/Shift combinations, reported via the
+// Ctrl, Alt, and Shift fields); the rest name keys with no printable rune of
+// their own.
+type KeyType int
+
+const (
+	KeyRune KeyType = iota
+	KeyEnter
+	KeyEsc
+	KeyTab
+	KeyBackspace
+	KeyDelete
+	KeyInsert
+	KeyHome
+	KeyEnd
+	KeyPgUp
+	KeyPgDown
+	KeyUp
+	KeyDown
+	KeyLeft
+	KeyRight
+)
+
+// keyboardProtocol identifies which keyboard-modifier reporting protocol is
+// active on the terminal, negotiated by EnterRawMode.
+type keyboardProtocol uint8
+
+const (
+	keyboardProtocolNone keyboardProtocol = iota
+	keyboardProtocolKitty
+	keyboardProtocolModifyOtherKeys
+)
+
+type MouseButton uint8
+
+const (
+	MouseButtonLeft MouseButton = iota
+	MouseButtonMiddle
+	MouseButtonRight
+	MouseButtonWheelUp
+	MouseButtonWheelDown
+	MouseButtonNone // reported during a drag with no button held
+)
+
+type MouseAction uint8
+
+const (
+	MouseActionPress MouseAction = iota
+	MouseActionRelease
+	MouseActionMotion
+)
+
 var listenerId = atomic.Uint64{}
 
 // Event is a value flowing through the event loop's queue and the package

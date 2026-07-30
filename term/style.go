@@ -2,6 +2,13 @@ package term
 
 import "strings"
 
+var (
+	Success = NewStyle().WithBackground(ColorSuccess)
+	Info    = NewStyle().WithBackground(ColorInfo)
+	Warning = NewStyle().WithBackground(ColorWarning)
+	Error   = NewStyle().WithBackground(ColorError)
+)
+
 type Style struct {
 	bold            bool
 	dim             bool

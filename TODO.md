@@ -1,5 +1,5 @@
 
-[ ] Review
+[x] Review
   [x] Add OnKeyboard
   [x] Refactor OnResize
   [x] Add OnEvent
@@ -9,7 +9,7 @@
   [x] Decide layouting (~~retained~~ vs immediate mode)
   [x] Program/layout event loop
   [x] Buffer structure
-  [ ] Mouse and Keyboard events
+  [x] Mouse and Keyboard events
     [x] Global raw stdin listeners and fanout
   [ ] Layouting
   [ ] Widgets
