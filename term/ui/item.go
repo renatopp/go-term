@@ -115,14 +115,14 @@ func (i *Item) resolveAlign(containerAlign Align) Align {
 }
 
 func (i *Item) preferredWidth() int {
-	if s, ok := i.component.(Sized); ok {
+	if s, ok := i.component.(Sizeable); ok {
 		return s.PreferredWidth()
 	}
 	return 0
 }
 
 func (i *Item) preferredHeight(width int) int {
-	if s, ok := i.component.(Sized); ok {
+	if s, ok := i.component.(Sizeable); ok {
 		return s.PreferredHeight(width)
 	}
 	return 0

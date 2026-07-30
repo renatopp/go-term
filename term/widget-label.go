@@ -12,7 +12,7 @@ func NewLabel(text string) *Label {
 
 var (
 	_ ui.Component = (*Label)(nil)
-	_ ui.Sized     = (*Label)(nil)
+	_ ui.Sizeable  = (*Label)(nil)
 )
 
 func (l *Label) WithText(text string) *Label {

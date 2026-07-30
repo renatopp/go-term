@@ -93,10 +93,6 @@ func (c *Container) WithComponent(components ...Component) *Container {
 	return c
 }
 
-func (c *Container) WithSpacer() *Container {
-	return c.WithItem(NewItem(NewSpacer()).WithGrow(1))
-}
-
 // RemoveItem removes the given items from the container's children, if
 // present. Items not added via WithItem (e.g. those wrapped internally by
 // WithComponent) cannot be matched and are ignored.

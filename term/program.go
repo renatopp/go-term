@@ -2,16 +2,20 @@ package term
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"syscall"
+	"time"
 )
 
+// DefaultFPS is used when no FPS is configured via WithFPS.
+const DefaultFPS = 30
+
 type Program struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	queue  chan Event
-	mouse  bool
+	ctx       context.Context
+	cancel    context.CancelFunc
+	queue     chan Event
+	alternate bool
+	mouse     bool
+	dirty     bool
+	fps       int
 }
 
 func NewProgram() *Program {
@@ -22,12 +26,22 @@ func NewProgram() *Program {
 	}
 }
 
-// WithMouse enables mouse reporting (press, release, drag, and wheel) for
-// the program's lifetime; events arrive on the queue as MouseEvent. Mouse
-// reporting is off by default, since capturing it also disables the
-// terminal's own text selection for callers that don't need it.
+func (p *Program) FPS() int {
+	return p.fps
+}
+
+func (p *Program) InAlternateScreen() *Program {
+	p.alternate = true
+	return p
+}
+
 func (p *Program) WithMouse() *Program {
 	p.mouse = true
+	return p
+}
+
+func (p *Program) WithFPS(fps int) *Program {
+	p.fps = fps
 	return p
 }
 
@@ -45,13 +59,9 @@ func (p *Program) Run() error {
 	EnterRawMode()
 	defer ExitRawMode()
 
+	OnEvent(p.Send)
+
 	ClearScreen()
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(sigs)
-
-	go p.forwardSignals(sigs)
 
 	if p.mouse {
 		EnableMouse()
@@ -80,30 +90,37 @@ func (p *Program) Send(event Event) {
 }
 
 func (p *Program) eventLoop() {
+	fps := p.fps
+	if fps <= 0 {
+		fps = DefaultFPS
+	}
+	ticker := time.NewTicker(time.Second / time.Duration(fps))
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
 		case event := <-p.queue:
-			p.dispatch(event)
+			p.update(event)
+		case <-ticker.C:
+			if p.dirty {
+				p.draw()
+				p.dirty = false
+			}
 		}
 	}
 }
 
-func (p *Program) forwardSignals(sigs chan os.Signal) {
-	for {
-		select {
-		case sig := <-sigs:
-			p.Send(SignalEvent{Signal: sig})
-		case <-p.ctx.Done():
-			return
-		}
-	}
-}
+func (p *Program) update(event Event) {
+	p.dirty = true
 
-func (p *Program) dispatch(event Event) {
 	switch event.(type) {
 	case SignalEvent:
 		p.Stop()
 	}
+}
+
+func (p *Program) draw() {
+
 }
