@@ -1,6 +1,6 @@
 package term
 
-import "github.com/renatopp/go-term/ui"
+import "github.com/renatopp/go-term/term/ui"
 
 type Label struct {
 	text string
