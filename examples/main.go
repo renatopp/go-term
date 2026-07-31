@@ -1,11 +1,25 @@
 package main
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/renatopp/go-term/term"
+	"github.com/renatopp/go-term/term/ui"
 )
 
 func main() {
-	term.NewProgram().Run()
+	l := term.NewLabel("Renato Pereira Vai ao Mercado")
+	print(l, 100, 1)
+	print(l, 20, 5)
+	print(l, 10, 5)
+	print(l, 5, 5)
+}
+
+func print(label ui.Component, width, height int) {
+	lines := label.Render(width, height)
+	fmt.Println("|" + strings.Join(lines, "\n|"))
+	fmt.Println("")
 }
 
 // 	term.EnterAlternateScreen()

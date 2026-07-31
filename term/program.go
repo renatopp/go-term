@@ -30,7 +30,7 @@ func (p *Program) FPS() int {
 	return p.fps
 }
 
-func (p *Program) InAlternateScreen() *Program {
+func (p *Program) AsAlternateScreen() *Program {
 	p.alternate = true
 	return p
 }
