@@ -3,6 +3,11 @@ package ui
 type Event any
 
 type Component interface {
+	Renderable
+	Updatable
+}
+
+type Renderable interface {
 	Render(width, height int) []string
 }
 

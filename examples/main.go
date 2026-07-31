@@ -9,14 +9,19 @@ import (
 )
 
 func main() {
-	l := term.NewLabel("Renato Pereira Vai ao Mercado")
+	l := term.NewLabel("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since 1966, when designers at Letraset and James Mosley, the librarian at St Bride Printing Library in London, took a 1914 Cicero translation and scrambled it to make dummy text for Letraset's Body Type sheets. It has survived not only many decades, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised thanks to these sheets and more recently with desktop publishing software like Aldus PageMaker and Microsoft Word including versions of Lorem Ipsum.")
 	print(l, 100, 1)
 	print(l, 20, 5)
 	print(l, 10, 5)
 	print(l, 5, 5)
+
+	term.
+		NewProgram(l).
+		AsAlternateScreen().
+		Run()
 }
 
-func print(label ui.Component, width, height int) {
+func print(label ui.Renderable, width, height int) {
 	lines := label.Render(width, height)
 	fmt.Println("|" + strings.Join(lines, "\n|"))
 	fmt.Println("")

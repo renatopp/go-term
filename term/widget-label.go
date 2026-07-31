@@ -35,6 +35,10 @@ func (l *Label) PreferredHeight(width int) int {
 	return len(wrapText(l.text, width))
 }
 
+func (l *Label) Update(_ Event) {
+	//
+}
+
 // Render wraps the label's text to fit width, greedily breaking at word
 // boundaries (and splitting words longer than width). If the wrapped text
 // doesn't fit within height, it is truncated and the last visible line ends

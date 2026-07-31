@@ -29,74 +29,73 @@ const (
 	AlignAuto // inherit the container's align
 )
 
-type Container struct {
+type container struct {
 	direction Direction
 	justify   Justify
 	align     Align
 	gap       int
-	padding   int
-	items     []*Item
+	paddingX  int
+	paddingY  int
+	items     []*item
 }
 
-func NewContainer(direction Direction) *Container {
-	return &Container{
+func Container(direction Direction, items ...*item) *container {
+	return (&container{
 		direction: direction,
 		align:     AlignStretch,
-	}
+	}).WithItem(items...)
 }
 
-func Row(items ...*Item) *Container {
-	return NewContainer(DirectionRow).WithItem(items...)
+func Row(items ...*item) *container {
+	return Container(DirectionRow).WithItem(items...)
 }
 
-func Column(items ...*Item) *Container {
-	return NewContainer(DirectionColumn).WithItem(items...)
+func Column(items ...*item) *container {
+	return Container(DirectionColumn).WithItem(items...)
 }
 
 // WithJustify sets the justification of the container's children along the main axis.
-func (c *Container) WithJustify(j Justify) *Container {
+func (c *container) WithJustify(j Justify) *container {
 	c.justify = j
 	return c
 }
 
 // WithAlign sets the alignment of the container's children along the cross axis.
-func (c *Container) WithAlign(a Align) *Container {
+func (c *container) WithAlign(a Align) *container {
 	c.align = a
 	return c
 }
 
 // WithGap sets the gap between the container's children along the main axis.
-func (c *Container) WithGap(n int) *Container {
+func (c *container) WithGap(n int) *container {
 	c.gap = n
 	return c
 }
 
 // WithPadding sets the uniform space between the container's edges and its
 // children, applied before children are laid out.
-func (c *Container) WithPadding(n int) *Container {
-	c.padding = n
+func (c *container) WithPadding(n int) *container {
+	return c.WithPaddingXY(n, n)
+}
+
+// WithPaddingXY sets the space between the container's edges and its children
+// with independent horizontal (x) and vertical (y) values.
+func (c *container) WithPaddingXY(x, y int) *container {
+	c.paddingX = x
+	c.paddingY = y
 	return c
 }
 
 // WithItem adds the given items as children of the container.
-func (c *Container) WithItem(items ...*Item) *Container {
+func (c *container) WithItem(items ...*item) *container {
 	c.items = append(c.items, items...)
-	return c
-}
-
-// WithComponent adds the given components as children of the container. Each
-// component is wrapped in an Item with default grow, shrink, and basis values.
-func (c *Container) WithComponent(components ...Component) *Container {
-	for _, comp := range components {
-		c.WithItem(NewItem(comp))
-	}
 	return c
 }
 
 // RemoveItem removes the given items from the container's children, if
 // present. Items not added via WithItem (e.g. those wrapped internally by
 // WithComponent) cannot be matched and are ignored.
-func (c *Container) RemoveItem(items ...*Item) *Container {
+func (c *container) RemoveItem(items ...*item) *container {
 	remaining := c.items[:0]
 outer:
 	for _, existing := range c.items {
@@ -112,7 +111,7 @@ outer:
 }
 
 // Clear removes all of the container's children.
-func (c *Container) Clear() *Container {
+func (c *container) Clear() *container {
 	c.items = nil
 	return c
 }
@@ -120,7 +119,7 @@ func (c *Container) Clear() *Container {
 // Layout computes the layout of the container's children given the available
 // width and height. It returns a slice of Rects representing the position
 // and size of each child.
-func (c *Container) Layout(width, height int) []Rect {
+func (c *container) Layout(width, height int) []Rect {
 	items := c.visibleItems()
 	n := len(items)
 	rects := make([]Rect, n)
@@ -128,8 +127,8 @@ func (c *Container) Layout(width, height int) []Rect {
 		return rects
 	}
 
-	width = max(0, width-2*c.padding)
-	height = max(0, height-2*c.padding)
+	width = max(0, width-2*c.paddingX)
+	height = max(0, height-2*c.paddingY)
 
 	grows := make([]int, n)
 	shrinks := make([]int, n)
@@ -143,7 +142,7 @@ func (c *Container) Layout(width, height int) []Rect {
 		mins := make([]int, n)
 		maxs := make([]int, n)
 		for i, item := range items {
-			bases[i] = item.mainWidth()
+			bases[i] = item.mainWidth(width)
 			mins[i] = item.minWidth
 			maxs[i] = item.maxWidth
 		}
@@ -158,7 +157,7 @@ func (c *Container) Layout(width, height int) []Rect {
 			h = item.clampHeight(h)
 			rects[i] = Rect{X: xs[i], Y: crossOffset(align, height, h), Width: widths[i], Height: h}
 		}
-		offsetRects(rects, c.padding, c.padding)
+		offsetRects(rects, c.paddingX, c.paddingY)
 		return rects
 	}
 
@@ -176,7 +175,7 @@ func (c *Container) Layout(width, height int) []Rect {
 	mins := make([]int, n)
 	maxs := make([]int, n)
 	for i, item := range items {
-		bases[i] = item.mainHeight(widths[i])
+		bases[i] = item.mainHeight(widths[i], height)
 		mins[i] = item.minHeight
 		maxs[i] = item.maxHeight
 	}
@@ -185,14 +184,14 @@ func (c *Container) Layout(width, height int) []Rect {
 	for i, item := range items {
 		rects[i] = Rect{X: crossOffset(item.resolveAlign(c.align), width, widths[i]), Y: ys[i], Width: widths[i], Height: heights[i]}
 	}
-	offsetRects(rects, c.padding, c.padding)
+	offsetRects(rects, c.paddingX, c.paddingY)
 	return rects
 }
 
 // Render renders the container and its children into a slice of strings,
 // each representing a line of text. The width and height parameters specify
 // the available space for rendering.
-func (c *Container) Render(width, height int) []string {
+func (c *container) Render(width, height int) []string {
 	rects := c.Layout(width, height)
 	grid := make([][]rune, height)
 	for y := range grid {
@@ -232,7 +231,7 @@ func (c *Container) Render(width, height int) []string {
 
 // PreferredWidth returns the preferred width of the container, which is the
 // sum of the preferred widths of its children plus the gaps between them.
-func (c *Container) PreferredWidth() int {
+func (c *container) PreferredWidth() int {
 	items := c.visibleItems()
 	n := len(items)
 	if n == 0 {
@@ -242,28 +241,28 @@ func (c *Container) PreferredWidth() int {
 	if c.direction == DirectionRow {
 		sum := c.gap * (n - 1)
 		for _, item := range items {
-			sum += item.mainWidth()
+			sum += item.mainWidth(-1)
 		}
-		return sum + 2*c.padding
+		return sum + 2*c.paddingX
 	}
 
 	w := 0
 	for _, item := range items {
 		w = max(w, item.crossWidth())
 	}
-	return w + 2*c.padding
+	return w + 2*c.paddingX
 }
 
 // PreferredHeight returns the preferred height of the container given a
 // specific width.
-func (c *Container) PreferredHeight(width int) int {
+func (c *container) PreferredHeight(width int) int {
 	items := c.visibleItems()
 	n := len(items)
 	if n == 0 {
 		return 0
 	}
 
-	width = max(0, width-2*c.padding)
+	width = max(0, width-2*c.paddingX)
 
 	if c.direction == DirectionColumn {
 		sum := c.gap * (n - 1)
@@ -272,9 +271,9 @@ func (c *Container) PreferredHeight(width int) int {
 			if item.resolveAlign(c.align) != AlignStretch {
 				w = item.crossWidth()
 			}
-			sum += item.mainHeight(w)
+			sum += item.mainHeight(w, -1)
 		}
-		return sum + 2*c.padding
+		return sum + 2*c.paddingY
 	}
 
 	bases := make([]int, n)
@@ -283,7 +282,7 @@ func (c *Container) PreferredHeight(width int) int {
 	mins := make([]int, n)
 	maxs := make([]int, n)
 	for i, item := range items {
-		bases[i] = item.mainWidth()
+		bases[i] = item.mainWidth(width)
 		grows[i] = item.grow
 		shrinks[i] = item.shrink
 		mins[i] = item.minWidth
@@ -295,11 +294,11 @@ func (c *Container) PreferredHeight(width int) int {
 	for i, item := range items {
 		h = max(h, item.crossHeight(widths[i]))
 	}
-	return h + 2*c.padding
+	return h + 2*c.paddingY
 }
 
-func (c *Container) visibleItems() []*Item {
-	items := make([]*Item, 0, len(c.items))
+func (c *container) visibleItems() []*item {
+	items := make([]*item, 0, len(c.items))
 	for _, item := range c.items {
 		if !item.hidden {
 			items = append(items, item)

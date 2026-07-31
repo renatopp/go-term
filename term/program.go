@@ -3,6 +3,8 @@ package term
 import (
 	"context"
 	"time"
+
+	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultFPS is used when no FPS is configured via WithFPS.
@@ -12,17 +14,22 @@ type Program struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	queue     chan Event
+	root      ui.Component
+	buffer    *Buffer
+	width     int
+	height    int
 	alternate bool
 	mouse     bool
 	dirty     bool
 	fps       int
 }
 
-func NewProgram() *Program {
+func NewProgram(root ui.Component) *Program {
 	return &Program{
 		ctx:    context.Background(),
 		cancel: func() {},
 		queue:  make(chan Event, 64),
+		root:   root,
 	}
 }
 
@@ -61,6 +68,8 @@ func (p *Program) Run() error {
 
 	OnEvent(p.Send)
 
+	p.width, p.height = ForceGetScreenSize()
+
 	ClearScreen()
 
 	if p.mouse {
@@ -97,6 +106,7 @@ func (p *Program) eventLoop() {
 	ticker := time.NewTicker(time.Second / time.Duration(fps))
 	defer ticker.Stop()
 
+	p.draw()
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -114,13 +124,26 @@ func (p *Program) eventLoop() {
 
 func (p *Program) update(event Event) {
 	p.dirty = true
+	p.root.Update(event)
 
-	switch event.(type) {
+	switch e := event.(type) {
 	case SignalEvent:
 		p.Stop()
+	case KeyEvent:
+		if e.Rune == 'c' && e.Ctrl {
+			p.Stop()
+		}
+	case ResizeEvent:
+		p.width, p.height = e.Width, e.Height
 	}
 }
 
 func (p *Program) draw() {
+	if p.buffer == nil {
+		p.buffer = NewBuffer(p.width, p.height)
+	} else if p.buffer.width != p.width || p.buffer.height != p.height {
+		p.buffer.Resize(p.width, p.height)
+	}
 
+	p.buffer.Flush(p.root.Render(p.width, p.height), stdout)
 }

@@ -4,14 +4,13 @@
   [x] Refactor OnResize
   [x] Add OnEvent
   [x] Add signal listening (SIGWINCH, SIGINT, etc.)
-[ ] Background and Forecolor Detection (dark/light mode)
 [ ] UI
   [x] Decide layouting (~~retained~~ vs immediate mode)
   [x] Program/layout event loop
   [x] Buffer structure
   [x] Mouse and Keyboard events
     [x] Global raw stdin listeners and fanout
-  [ ] Layouting
+  [x] Layouting
   [ ] Widgets
     [ ] Content
       [ ] Boxes
@@ -55,30 +54,10 @@
   [x] Clear from cursor to end of screen
   [x] Resize events
 
-  
-
-
-- Scroll region set/reset, scroll up/down N lines
-- Set title (window/tab title)
-- Query terminal capabilities (color support, size via ioctl/ANSI query)
-- Save/restore entire screen buffer
-- Set background/foreground default colors, reset colors
-- Bell/beep
-- Synchronized output (begin/end sync for flicker-free redraw)
-- Detect terminal type (xterm, tmux, Windows Terminal, etc.)
-
-- Set cursor shape/style (block, underline, bar, blinking/steady)
-- Cursor visibility query (is it currently hidden?)
-- Move to column only (CHA)
-- Move relative by N (not just single step)
-- Cursor color
-
-- Input handling: raw mode toggle, read keypresses/escape sequences, mouse events (click, drag, scroll), paste detection (bracketed paste)
-- Styling: color palettes (16/256/truecolor), text attributes (bold, italic, underline, strikethrough), style composition/reset helpers
-- Terminal detection: is TTY, is piped, supports ANSI (esp. Windows legacy consoles)
-- Signal handling: SIGWINCH (resize), SIGINT cleanup (restore terminal state on exit)
-- Buffered/double-buffered rendering to reduce flicker
-- Unicode/wide-character width handling (for CJK, emoji) for accurate layout
-- Hyperlinks (OSC 8 clickable links)
-- Clipboard read/write (OSC 52)
-- Cross-platform abstraction (Windows Console API vs ANSI/VT for Unix)
+[ ] Background and Forecolor Detection (dark/light mode)
+[ ] Clipboard read/write (OSC 52)
+[ ] Scroll region
+[ ] Hyperlinks (OSC 8 clickable links)
+[ ] Mouse to component feedback
+[ ] Set cursor shape and color
+[ ] Paste detection
