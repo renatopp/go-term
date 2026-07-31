@@ -32,41 +32,41 @@ func NewStyle() *Style {
 	return &Style{}
 }
 
-func (s Style) Bold() bool                   { return s.bold }
-func (s Style) Dim() bool                    { return s.dim }
-func (s Style) Italic() bool                 { return s.italic }
-func (s Style) Underline() bool              { return s.underline }
-func (s Style) SlowBlink() bool              { return s.slowBlink }
-func (s Style) RapidBlink() bool             { return s.rapidBlink }
-func (s Style) Inverse() bool                { return s.inverse }
-func (s Style) Hidden() bool                 { return s.hidden }
-func (s Style) StrikeThrough() bool          { return s.strikeThrough }
-func (s Style) Fraktur() bool                { return s.fraktur }
-func (s Style) DoubleUnderline() bool        { return s.doubleUnderline }
-func (s Style) Framed() bool                 { return s.framed }
-func (s Style) Encircled() bool              { return s.encircled }
-func (s Style) Overline() bool               { return s.overline }
-func (s Style) Foreground() *Color           { return s.foreground }
-func (s Style) Background() *Color           { return s.background }
-func (s Style) AsBold() Style                { s.bold = true; return s }
-func (s Style) AsDim() Style                 { s.dim = true; return s }
-func (s Style) AsItalic() Style              { s.italic = true; return s }
-func (s Style) AsUnderline() Style           { s.underline = true; return s }
-func (s Style) AsSlowBlink() Style           { s.slowBlink = true; return s }
-func (s Style) AsRapidBlink() Style          { s.rapidBlink = true; return s }
-func (s Style) AsInverse() Style             { s.inverse = true; return s }
-func (s Style) AsHidden() Style              { s.hidden = true; return s }
-func (s Style) AsStrikeThrough() Style       { s.strikeThrough = true; return s }
-func (s Style) AsFraktur() Style             { s.fraktur = true; return s }
-func (s Style) AsDoubleUnderline() Style     { s.doubleUnderline = true; return s }
-func (s Style) AsFramed() Style              { s.framed = true; return s }
-func (s Style) AsEncircled() Style           { s.encircled = true; return s }
-func (s Style) AsOverline() Style            { s.overline = true; return s }
-func (s Style) WithForeground(c Color) Style { s.foreground = &c; return s }
-func (s Style) WithBackground(c Color) Style { s.background = &c; return s }
-func (s Style) WithoutForeground() Style     { s.foreground = nil; return s }
-func (s Style) WithoutBackground() Style     { s.background = nil; return s }
-func (s Style) WithoutColors() Style         { s.foreground = nil; s.background = nil; return s }
+func (s Style) Bold() bool                     { return s.bold }
+func (s Style) Dim() bool                      { return s.dim }
+func (s Style) Italic() bool                   { return s.italic }
+func (s Style) Underline() bool                { return s.underline }
+func (s Style) SlowBlink() bool                { return s.slowBlink }
+func (s Style) RapidBlink() bool               { return s.rapidBlink }
+func (s Style) Inverse() bool                  { return s.inverse }
+func (s Style) Hidden() bool                   { return s.hidden }
+func (s Style) StrikeThrough() bool            { return s.strikeThrough }
+func (s Style) Fraktur() bool                  { return s.fraktur }
+func (s Style) DoubleUnderline() bool          { return s.doubleUnderline }
+func (s Style) Framed() bool                   { return s.framed }
+func (s Style) Encircled() bool                { return s.encircled }
+func (s Style) Overline() bool                 { return s.overline }
+func (s Style) Foreground() *Color             { return s.foreground }
+func (s Style) Background() *Color             { return s.background }
+func (s Style) AsBold(v bool) Style            { s.bold = v; return s }
+func (s Style) AsDim(v bool) Style             { s.dim = v; return s }
+func (s Style) AsItalic(v bool) Style          { s.italic = v; return s }
+func (s Style) AsUnderline(v bool) Style       { s.underline = v; return s }
+func (s Style) AsSlowBlink(v bool) Style       { s.slowBlink = v; return s }
+func (s Style) AsRapidBlink(v bool) Style      { s.rapidBlink = v; return s }
+func (s Style) AsInverse(v bool) Style         { s.inverse = v; return s }
+func (s Style) AsHidden(v bool) Style          { s.hidden = v; return s }
+func (s Style) AsStrikeThrough(v bool) Style   { s.strikeThrough = v; return s }
+func (s Style) AsFraktur(v bool) Style         { s.fraktur = v; return s }
+func (s Style) AsDoubleUnderline(v bool) Style { s.doubleUnderline = v; return s }
+func (s Style) AsFramed(v bool) Style          { s.framed = v; return s }
+func (s Style) AsEncircled(v bool) Style       { s.encircled = v; return s }
+func (s Style) AsOverline(v bool) Style        { s.overline = v; return s }
+func (s Style) WithForeground(c Color) Style   { s.foreground = &c; return s }
+func (s Style) WithBackground(c Color) Style   { s.background = &c; return s }
+func (s Style) WithoutForeground() Style       { s.foreground = nil; return s }
+func (s Style) WithoutBackground() Style       { s.background = nil; return s }
+func (s Style) WithoutColors() Style           { s.foreground = nil; s.background = nil; return s }
 
 func (s Style) Render(v string) string {
 	var codes []string

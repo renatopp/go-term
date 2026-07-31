@@ -8,6 +8,38 @@ import (
 	"github.com/renatopp/go-term/term/ui"
 )
 
+type Page struct {
+}
+
+func NewPage() *Page {
+	return &Page{}
+}
+
+func (p *Page) Update(e ui.Event) ui.Event {
+	switch e := e.(type) {
+	case term.KeyEvent:
+		if e.Rune == 'q' {
+			return term.Quit
+		}
+	}
+	return e
+}
+
+func (p *Page) Render(width, height int) []string {
+	return ui.Column(
+		ui.Item(ui.Row(
+			ui.Item(term.NewLabel("Name")).WithBasisPercent(30),
+			ui.Item(term.NewLabel("Renato")).WithBasisPercent(70),
+		)),
+		ui.Item(ui.Row(
+			ui.Item(term.NewLabel("Email")).WithBasisPercent(30),
+			ui.Item(term.NewLabel("renato@renato.com")).WithBasisPercent(70),
+		)),
+		ui.Spacer(),
+		ui.Item(term.NewLabel("q quit").WithStyle(term.NewStyle().AsDim(true))),
+	).Render(width, height)
+}
+
 func main() {
 	l := term.NewLabel("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since 1966, when designers at Letraset and James Mosley, the librarian at St Bride Printing Library in London, took a 1914 Cicero translation and scrambled it to make dummy text for Letraset's Body Type sheets. It has survived not only many decades, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised thanks to these sheets and more recently with desktop publishing software like Aldus PageMaker and Microsoft Word including versions of Lorem Ipsum.")
 	print(l, 100, 1)
@@ -16,7 +48,7 @@ func main() {
 	print(l, 5, 5)
 
 	term.
-		NewProgram(l).
+		NewProgram(NewPage()).
 		AsAlternateScreen().
 		Run()
 }

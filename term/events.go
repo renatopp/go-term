@@ -18,6 +18,10 @@ const (
 	EventSignal         = "signal"
 )
 
+type QuitEvent int
+
+const Quit QuitEvent = 0
+
 // KeyType identifies a key reported by KeyEvent. KeyRune covers ordinary
 // character keys (including Ctrl/Alt/Shift combinations, reported via the
 // Ctrl, Alt, and Shift fields); the rest name keys with no printable rune of

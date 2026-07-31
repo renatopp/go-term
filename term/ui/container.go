@@ -1,6 +1,10 @@
 package ui
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/renatopp/go-term/term/internal/cell"
+)
 
 type Direction uint8
 
@@ -189,42 +193,45 @@ func (c *container) Layout(width, height int) []Rect {
 }
 
 // Render renders the container and its children into a slice of strings,
-// each representing a line of text. The width and height parameters specify
-// the available space for rendering.
+// each representing a line of text. Children are composited as cells, so
+// their lines may contain SGR escape sequences and wide characters. The
+// width and height parameters specify the available space for rendering.
 func (c *container) Render(width, height int) []string {
 	rects := c.Layout(width, height)
-	grid := make([][]rune, height)
+	grid := make([][]cell.Cell, height)
 	for y := range grid {
-		grid[y] = make([]rune, width)
+		grid[y] = make([]cell.Cell, width)
 		for x := range grid[y] {
-			grid[y][x] = ' '
+			grid[y][x] = cell.Cell{Text: " ", Width: 1}
 		}
 	}
 
-	for i, item := range c.visibleItems() {
+	for i, it := range c.visibleItems() {
 		r := rects[i]
-		lines := item.component.Render(r.Width, r.Height)
+		lines := it.component.Render(r.Width, r.Height)
 		for dy, line := range lines {
 			y := r.Y + dy
 			if dy >= r.Height || y < 0 || y >= height {
 				continue
 			}
-			x := r.X
-			for _, ch := range line {
-				if x >= r.X+r.Width || x >= width {
-					break
+			for dx, cl := range cell.BuildRow(line, r.Width) {
+				x := r.X + dx
+				if x < 0 || x >= width {
+					continue
 				}
-				if x >= 0 {
-					grid[y][x] = ch
+				// A wide character whose placeholder would be clipped by the
+				// container's edge can't be drawn whole; blank it instead.
+				if cl.Width == 2 && x+1 >= width {
+					cl = cell.Cell{Text: " ", Width: 1, Style: cl.Style}
 				}
-				x++
+				grid[y][x] = cl
 			}
 		}
 	}
 
 	out := make([]string, height)
 	for y, row := range grid {
-		out[y] = string(row)
+		out[y] = cell.RenderRow(row)
 	}
 	return out
 }

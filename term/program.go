@@ -15,7 +15,7 @@ type Program struct {
 	cancel    context.CancelFunc
 	queue     chan Event
 	root      ui.Component
-	buffer    *Buffer
+	buffer    *buffer
 	width     int
 	height    int
 	alternate bool
@@ -123,24 +123,39 @@ func (p *Program) eventLoop() {
 }
 
 func (p *Program) update(event Event) {
+	switch e := event.(type) {
+	case ResizeEvent:
+		p.width, p.height = e.Width, e.Height
+	}
+
 	p.dirty = true
-	p.root.Update(event)
+	p.dispatch(p.root.Update(event))
+}
+
+// dispatch stops the program on a SignalEvent or Ctrl+C. A ui.MultiEvent is
+// unpacked and each of its events is dispatched in turn. A nil event (as
+// returned by Component.Update to suppress default handling) is ignored.
+func (p *Program) dispatch(event Event) {
+	if multi, ok := event.(ui.MultiEvent); ok {
+		for _, e := range multi {
+			p.dispatch(e)
+		}
+		return
+	}
 
 	switch e := event.(type) {
-	case SignalEvent:
+	case SignalEvent, QuitEvent:
 		p.Stop()
 	case KeyEvent:
 		if e.Rune == 'c' && e.Ctrl {
 			p.Stop()
 		}
-	case ResizeEvent:
-		p.width, p.height = e.Width, e.Height
 	}
 }
 
 func (p *Program) draw() {
 	if p.buffer == nil {
-		p.buffer = NewBuffer(p.width, p.height)
+		p.buffer = newBuffer(p.width, p.height)
 	} else if p.buffer.width != p.width || p.buffer.height != p.height {
 		p.buffer.Resize(p.width, p.height)
 	}
