@@ -1,10 +1,6 @@
 package ui
 
-import (
-	"sort"
-
-	"github.com/renatopp/go-term/term/internal/cell"
-)
+import "sort"
 
 type Direction uint8
 
@@ -198,11 +194,11 @@ func (c *container) Layout(width, height int) []Rect {
 // width and height parameters specify the available space for rendering.
 func (c *container) Render(width, height int) []string {
 	rects := c.Layout(width, height)
-	grid := make([][]cell.Cell, height)
+	grid := make([][]cell, height)
 	for y := range grid {
-		grid[y] = make([]cell.Cell, width)
+		grid[y] = make([]cell, width)
 		for x := range grid[y] {
-			grid[y][x] = cell.Cell{Text: " ", Width: 1}
+			grid[y][x] = cell{text: " ", width: 1}
 		}
 	}
 
@@ -214,15 +210,15 @@ func (c *container) Render(width, height int) []string {
 			if dy >= r.Height || y < 0 || y >= height {
 				continue
 			}
-			for dx, cl := range cell.BuildRow(line, r.Width) {
+			for dx, cl := range buildRow(line, r.Width) {
 				x := r.X + dx
 				if x < 0 || x >= width {
 					continue
 				}
 				// A wide character whose placeholder would be clipped by the
 				// container's edge can't be drawn whole; blank it instead.
-				if cl.Width == 2 && x+1 >= width {
-					cl = cell.Cell{Text: " ", Width: 1, Style: cl.Style}
+				if cl.width == 2 && x+1 >= width {
+					cl = cell{text: " ", width: 1, style: cl.style}
 				}
 				grid[y][x] = cl
 			}
@@ -231,7 +227,7 @@ func (c *container) Render(width, height int) []string {
 
 	out := make([]string, height)
 	for y, row := range grid {
-		out[y] = cell.RenderRow(row)
+		out[y] = renderRow(row)
 	}
 	return out
 }
