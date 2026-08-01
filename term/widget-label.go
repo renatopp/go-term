@@ -1,6 +1,10 @@
 package term
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/renatopp/go-term/term/ui"
+)
 
 type Label struct {
 	text  string
@@ -18,7 +22,7 @@ func (l *Label) Text() string {
 
 func (l *Label) WithText(text string) *Label {
 	l.text = text
-	l.width = stringWidth(l.text)
+	l.width = ui.StringWidth(l.text)
 	return l
 }
 
@@ -139,7 +143,7 @@ func ellipsize(s string, width int) string {
 		return "…"
 	}
 	for len(runes) > 0 && w > width-1 {
-		w -= runeWidth(runes[len(runes)-1])
+		w -= ui.RuneWidth(runes[len(runes)-1])
 		runes = runes[:len(runes)-1]
 	}
 	return string(runes) + "…"
@@ -150,7 +154,7 @@ func ellipsize(s string, width int) string {
 // their total column width.
 func splitWidth(w []rune, width int) (n, cols int) {
 	for n < len(w) {
-		rw := runeWidth(w[n])
+		rw := ui.RuneWidth(w[n])
 		if n > 0 && cols+rw > width {
 			break
 		}
@@ -164,7 +168,7 @@ func splitWidth(w []rune, width int) (n, cols int) {
 func runesWidth(runes []rune) int {
 	w := 0
 	for _, r := range runes {
-		w += runeWidth(r)
+		w += ui.RuneWidth(r)
 	}
 	return w
 }

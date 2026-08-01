@@ -19,3 +19,6 @@ Internal Coding Rules:
 - For builder pattern, prefer With* methods over Set* methods, returning the builder type for chaining
   - Use As* methods for booleans (eg: AsVisible(bool))
 - Avoid creating smaller functions that are only used once, unless they improve readability
+
+Widgets:
+- Always add WithStyle(term.NewStyle) unless component has no output

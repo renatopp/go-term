@@ -194,11 +194,11 @@ func (c *container) Layout(width, height int) []Rect {
 // width and height parameters specify the available space for rendering.
 func (c *container) Render(width, height int) []string {
 	rects := c.Layout(width, height)
-	grid := make([][]cell, height)
+	grid := make([][]Cell, height)
 	for y := range grid {
-		grid[y] = make([]cell, width)
+		grid[y] = make([]Cell, width)
 		for x := range grid[y] {
-			grid[y][x] = cell{text: " ", width: 1}
+			grid[y][x] = Cell{Text: " ", Width: 1}
 		}
 	}
 
@@ -210,15 +210,15 @@ func (c *container) Render(width, height int) []string {
 			if dy >= r.Height || y < 0 || y >= height {
 				continue
 			}
-			for dx, cl := range buildRow(line, r.Width) {
+			for dx, cl := range BuildRow(line, r.Width) {
 				x := r.X + dx
 				if x < 0 || x >= width {
 					continue
 				}
 				// A wide character whose placeholder would be clipped by the
 				// container's edge can't be drawn whole; blank it instead.
-				if cl.width == 2 && x+1 >= width {
-					cl = cell{text: " ", width: 1, style: cl.style}
+				if cl.Width == 2 && x+1 >= width {
+					cl = Cell{Text: " ", Width: 1, Style: cl.Style}
 				}
 				grid[y][x] = cl
 			}
@@ -227,7 +227,7 @@ func (c *container) Render(width, height int) []string {
 
 	out := make([]string, height)
 	for y, row := range grid {
-		out[y] = renderRow(row)
+		out[y] = RenderRow(row)
 	}
 	return out
 }

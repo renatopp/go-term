@@ -3,6 +3,7 @@ package term
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/renatopp/go-term/term/ui"
 )
@@ -51,5 +52,12 @@ func TestDispatchUnwrapsMultiEvent(t *testing.T) {
 	p.dispatch(ui.Events(KeyEvent{Rune: 'x'}, SignalEvent{}))
 	if !p.stopped() {
 		t.Fatal("expected a SignalEvent nested in a MultiEvent to stop the program")
+	}
+}
+
+func TestProgramWithTick(t *testing.T) {
+	p := NewProgram(nil).WithTick(50 * time.Millisecond)
+	if p.Tick() != 50*time.Millisecond {
+		t.Fatalf("Tick() = %v, want %v", p.Tick(), 50*time.Millisecond)
 	}
 }

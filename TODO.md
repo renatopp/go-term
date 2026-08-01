@@ -13,14 +13,14 @@
   [x] Layouting
   [ ] Widgets
     [ ] Content
-      [ ] Boxes
-      [ ] Lists
+      [x] Boxes
+      [x] Lists
       [ ] Tables
       [ ] Trees
       [ ] Graphs
     [ ] Dynamic
-      [ ] Spinners
-      [ ] Progress bars
+      [x] Spinners
+      [x] Progress bars
       [ ] Counters
       [ ] Timers
       [ ] Badges
@@ -54,9 +54,12 @@
   [x] Clear from cursor to end of screen
   [x] Resize events
 
+[ ] Make widgets runnable
 [ ] Background and Forecolor Detection (dark/light mode)
 [ ] Clipboard read/write (OSC 52)
 [ ] Scroll region
+[ ] Draw only visible part
+[ ] Default styling
 [ ] Hyperlinks (OSC 8 clickable links)
 [ ] Mouse to component feedback
 [ ] Set cursor shape and color

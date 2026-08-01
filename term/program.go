@@ -10,6 +10,9 @@ import (
 // DefaultFPS is used when no FPS is configured via WithFPS.
 const DefaultFPS = 30
 
+// DefaultTick is used when no tick interval is configured via WithTick.
+const DefaultTick = 100 * time.Millisecond
+
 type Program struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -22,6 +25,7 @@ type Program struct {
 	mouse     bool
 	dirty     bool
 	fps       int
+	tick      time.Duration
 }
 
 func NewProgram(root ui.Component) *Program {
@@ -52,6 +56,17 @@ func (p *Program) WithFPS(fps int) *Program {
 	return p
 }
 
+func (p *Program) Tick() time.Duration {
+	return p.tick
+}
+
+// WithTick sets the interval at which a TickEvent is dispatched to the root
+// component, driving time-based components like Spinner.
+func (p *Program) WithTick(d time.Duration) *Program {
+	p.tick = d
+	return p
+}
+
 // Run starts the program's event loop. It terminates when ctx is done or
 // when Stop is called.
 func (p *Program) Run() error {
@@ -65,6 +80,9 @@ func (p *Program) Run() error {
 
 	EnterRawMode()
 	defer ExitRawMode()
+
+	HideCursor()
+	defer ShowCursor()
 
 	OnEvent(p.Send)
 
@@ -106,6 +124,15 @@ func (p *Program) eventLoop() {
 	ticker := time.NewTicker(time.Second / time.Duration(fps))
 	defer ticker.Stop()
 
+	tick := p.tick
+	if tick <= 0 {
+		tick = DefaultTick
+	}
+	tickTicker := time.NewTicker(tick)
+	defer tickTicker.Stop()
+
+	lastTick := time.Now()
+
 	p.draw()
 	for {
 		select {
@@ -113,6 +140,9 @@ func (p *Program) eventLoop() {
 			return
 		case event := <-p.queue:
 			p.update(event)
+		case now := <-tickTicker.C:
+			p.update(TickEvent{Time: now, Duration: now.Sub(lastTick)})
+			lastTick = now
 		case <-ticker.C:
 			if p.dirty {
 				p.draw()

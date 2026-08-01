@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/renatopp/go-term/term/ui"
 )
 
 // buffer holds the last frame written to a terminal so that Flush can diff
@@ -11,7 +13,7 @@ import (
 type buffer struct {
 	width  int
 	height int
-	rows   [][]cell
+	rows   [][]ui.Cell
 }
 
 // newBuffer creates a buffer for a terminal of the given size. The first
@@ -35,18 +37,18 @@ func (b *buffer) Resize(width, height int) {
 func (b *buffer) Flush(lines []string, w io.Writer) error {
 	full := b.rows == nil
 
-	rows := make([][]cell, b.height)
+	rows := make([][]ui.Cell, b.height)
 	for y := range rows {
 		var line string
 		if y < len(lines) {
 			line = lines[y]
 		}
-		rows[y] = buildRow(line, b.width)
+		rows[y] = ui.BuildRow(line, b.width)
 	}
 
 	var out strings.Builder
 	for y, row := range rows {
-		var old []cell
+		var old []ui.Cell
 		if !full {
 			old = b.rows[y]
 		}
@@ -64,7 +66,7 @@ func (b *buffer) Flush(lines []string, w io.Writer) error {
 // writeRowDiff writes the changed columns of row y to out, comparing new
 // against old. full forces every column to be treated as changed, which is
 // used for the first Flush after newBuffer/Resize.
-func writeRowDiff(out *strings.Builder, y int, old, new []cell, full bool) {
+func writeRowDiff(out *strings.Builder, y int, old, new []ui.Cell, full bool) {
 	x := 0
 	for x < len(new) {
 		if !full && x < len(old) && old[x] == new[x] {
@@ -75,7 +77,7 @@ func writeRowDiff(out *strings.Builder, y int, old, new []cell, full bool) {
 		// A wide character's placeholder cell can't be rewritten on its
 		// own, so a change starting on one pulls in the character before it.
 		start := x
-		if new[start].width == 0 && start > 0 {
+		if new[start].Width == 0 && start > 0 {
 			start--
 		}
 
@@ -91,24 +93,24 @@ func writeRowDiff(out *strings.Builder, y int, old, new []cell, full bool) {
 
 // writeRun positions the cursor at row y, column x and writes the run's
 // cells, emitting an SGR sequence only where the active style changes.
-func writeRun(out *strings.Builder, y, x int, run []cell) {
+func writeRun(out *strings.Builder, y, x int, run []ui.Cell) {
 	fmt.Fprintf(out, "\x1b[%d;%dH", y+1, x+1)
 
 	style := ""
 	for _, c := range run {
-		if c.width == 0 {
+		if c.Width == 0 {
 			continue
 		}
-		if c.style != style {
+		if c.Style != style {
 			// Styles describe all attributes from a default state, so reset
 			// before switching between two styles rather than stacking them.
 			if style != "" {
 				out.WriteString("\x1b[0m")
 			}
-			out.WriteString(c.style)
-			style = c.style
+			out.WriteString(c.Style)
+			style = c.Style
 		}
-		out.WriteString(c.text)
+		out.WriteString(c.Text)
 	}
 	if style != "" {
 		out.WriteString("\x1b[0m")

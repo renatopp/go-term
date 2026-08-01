@@ -2,17 +2,34 @@ package main
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strings"
+	"time"
 
 	"github.com/renatopp/go-term/term"
 	"github.com/renatopp/go-term/term/ui"
 )
 
 type Page struct {
+	spinner   *term.Spinner
+	cursor    *term.Cursor
+	progress  *term.ProgressBar
+	counter   *term.Counter
+	textInput *term.TextInput
 }
 
 func NewPage() *Page {
-	return &Page{}
+	return &Page{
+		spinner: term.NewSpinner().WithText("Loading..."),
+		cursor:  term.NewCursor(),
+		progress: term.NewProgressBar().
+			AsShowPercent(true).
+			// WithWidth(30).
+			WithPrefix("renato").
+			WithSuffix("pereira"),
+		counter:   term.NewCounter(0).WithSpeed(100 * time.Millisecond),
+		textInput: term.NewTextInput().WithWidth(10).Focus(),
+	}
 }
 
 func (p *Page) Update(e ui.Event) ui.Event {
@@ -21,7 +38,17 @@ func (p *Page) Update(e ui.Event) ui.Event {
 		if e.Rune == 'q' {
 			return term.Quit
 		}
+		p.counter.WithValue(rand.IntN(10000))
+		p.progress.WithValue(rand.Float64())
+	case term.TickEvent:
 	}
+
+	p.spinner.Update(e)
+	p.cursor.Update(e)
+	p.progress.Update(e)
+	p.counter.Update(e)
+	p.textInput.Update(e)
+
 	return e
 }
 
@@ -35,8 +62,24 @@ func (p *Page) Render(width, height int) []string {
 			ui.Item(term.NewLabel("Email")).WithBasisPercent(30),
 			ui.Item(term.NewLabel("renato@renato.com")).WithBasisPercent(70),
 		)),
+		ui.Item(
+			term.NewList("a", "b", "c"),
+		),
+		ui.Item(p.spinner),
+		ui.Item(p.cursor),
+		ui.Item(p.progress),
+		ui.Item(p.counter),
+		ui.Item(p.textInput),
 		ui.Spacer(),
-		ui.Item(term.NewLabel("q quit").WithStyle(term.NewStyle().AsDim(true))),
+		ui.Item(
+			term.NewBox(
+				term.NewLabel("q quit").WithStyle(term.NewStyle().AsDim(true)),
+			).
+				WithBorder(term.BorderDouble).
+				WithPaddingXY(5, 0).
+				WithMargin(1).
+				WithStyle(term.NewStyle().AsDim(true)),
+		),
 	).Render(width, height)
 }
 
@@ -50,6 +93,7 @@ func main() {
 	term.
 		NewProgram(NewPage()).
 		AsAlternateScreen().
+		WithTick(time.Second / 60).
 		Run()
 }
 

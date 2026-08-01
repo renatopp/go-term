@@ -4,6 +4,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/renatopp/go-term/term/ui"
 )
@@ -125,6 +126,15 @@ type MouseEvent struct {
 
 type ResizeEvent struct {
 	Width, Height int
+}
+
+// TickEvent is sent periodically at the interval configured by
+// Program.WithTick (see DefaultTick), letting time-driven components (e.g.
+// Spinner) animate. Duration is the actual time elapsed since the previous
+// TickEvent, which may drift from the configured interval.
+type TickEvent struct {
+	Time     time.Time
+	Duration time.Duration
 }
 
 type eventBus struct {

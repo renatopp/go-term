@@ -5,21 +5,21 @@ import (
 	"unicode"
 )
 
-// cell is a single terminal column: its visible content, the number of
+// Cell is a single terminal column: its visible content, the number of
 // columns it occupies (0 for the placeholder following a wide character, 1
 // for a normal character, 2 for a wide one), and the raw SGR sequence
 // active when it was written ("" for no styling).
-type cell struct {
-	text  string
-	width int
-	style string
+type Cell struct {
+	Text  string
+	Width int
+	Style string
 }
 
-// buildRow scans line into exactly width columns, truncating content that
+// BuildRow scans line into exactly width columns, truncating content that
 // overflows and padding short lines with blank cells. The line may contain
-// SGR escape sequences, which are captured as each cell's style.
-func buildRow(line string, width int) []cell {
-	row := make([]cell, 0, width)
+// SGR escape sequences, which are captured as each cell's Style.
+func BuildRow(line string, width int) []Cell {
+	row := make([]Cell, 0, width)
 	runes := []rune(line)
 	style := ""
 	x := 0
@@ -40,10 +40,10 @@ func buildRow(line string, width int) []cell {
 			continue
 		}
 
-		w := runeWidth(r)
+		w := RuneWidth(r)
 		if w == 0 {
 			if len(row) > 0 {
-				row[len(row)-1].text += string(r)
+				row[len(row)-1].Text += string(r)
 			}
 			i++
 			continue
@@ -52,38 +52,38 @@ func buildRow(line string, width int) []cell {
 			break
 		}
 
-		row = append(row, cell{text: string(r), width: w, style: style})
+		row = append(row, Cell{Text: string(r), Width: w, Style: style})
 		if w == 2 {
-			row = append(row, cell{width: 0})
+			row = append(row, Cell{Width: 0})
 		}
 		x += w
 		i++
 	}
 
 	for x < width {
-		row = append(row, cell{text: " ", width: 1})
+		row = append(row, Cell{Text: " ", Width: 1})
 		x++
 	}
 	return row
 }
 
-// renderRow serializes cells back into a single line, emitting an SGR
+// RenderRow serializes cells back into a single line, emitting an SGR
 // sequence only where the active style changes and a reset at the end.
-func renderRow(cells []cell) string {
+func RenderRow(cells []Cell) string {
 	var out strings.Builder
 	style := ""
 	for _, c := range cells {
-		if c.width == 0 {
+		if c.Width == 0 {
 			continue
 		}
-		if c.style != style {
+		if c.Style != style {
 			if style != "" {
 				out.WriteString("\x1b[0m")
 			}
-			out.WriteString(c.style)
-			style = c.style
+			out.WriteString(c.Style)
+			style = c.Style
 		}
-		out.WriteString(c.text)
+		out.WriteString(c.Text)
 	}
 	if style != "" {
 		out.WriteString("\x1b[0m")
@@ -91,10 +91,10 @@ func renderRow(cells []cell) string {
 	return out.String()
 }
 
-// runeWidth returns the number of terminal columns r occupies: 0 for
+// RuneWidth returns the number of terminal columns r occupies: 0 for
 // combining marks and joiners that attach to the previous cell, 2 for wide
 // East Asian characters, 1 otherwise.
-func runeWidth(r rune) int {
+func RuneWidth(r rune) int {
 	switch {
 	case r == 0x200D, r == 0xFEFF, r >= 0xFE00 && r <= 0xFE0F, r >= 0xE0100 && r <= 0xE01EF:
 		return 0
@@ -105,6 +105,24 @@ func runeWidth(r rune) int {
 	default:
 		return 1
 	}
+}
+
+// StringWidth returns the number of terminal columns s occupies, ignoring
+// SGR escape sequences.
+func StringWidth(s string) int {
+	runes := []rune(s)
+	w := 0
+	for i := 0; i < len(runes); {
+		if runes[i] == '\x1b' {
+			if _, n := scanSGR(runes[i:]); n > 0 {
+				i += n
+				continue
+			}
+		}
+		w += RuneWidth(runes[i])
+		i++
+	}
+	return w
 }
 
 // scanSGR reads a CSI SGR escape sequence ("\x1b[<params>m") from the start
