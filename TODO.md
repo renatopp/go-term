@@ -28,8 +28,8 @@
       [x] Input prompt
       [x] Select prompt
       [ ] Multi-select prompt
-      [-] Password prompt
-      [-] Number prompt
+      [x] Password prompt
+      [x] Number prompt
       [ ] Fuzzy search prompt
 [x] Styles
   [x] Colors Types and Initialization (ansi, 256, 24-bit, hex)
@@ -52,13 +52,15 @@
   [x] Clear from cursor to end of screen
   [x] Resize events
 
-[ ] Make widgets runnable
+[ ] Review dos widges:
+  [ ] Adicionar width and height
+  [ ] Default styling
+  [ ] Make widgets standalone
+
 [ ] Background and Forecolor Detection (dark/light mode)
 [ ] Clipboard read/write (OSC 52)
 [ ] Scroll region
 [ ] Draw only visible part
-[ ] Default styling
 [ ] Hyperlinks (OSC 8 clickable links)
 [ ] Mouse to component feedback
-[ ] Set cursor shape and color
 [ ] Paste detection
