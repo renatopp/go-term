@@ -1,6 +1,7 @@
 package term
 
 import (
+	"strings"
 	"time"
 
 	"github.com/renatopp/go-term/term/ui"
@@ -56,17 +57,21 @@ var SpinnerFramesMoon = []string{"🌑", "🌒", "🌓", "🌔", "🌕", "🌖",
 // Spinner until WithFrameRate is called.
 const DefaultSpinnerFrameRate = 100 * time.Millisecond
 
-// Spinner renders one of a sequence of frames, advanced by calling Tick.
-// It does not animate on its own; call Tick whenever a new frame should be
-// shown (e.g. from a program-driven timer). Update, in contrast, paces
-// advancement to FrameRate regardless of how often TickEvent fires.
+// Spinner renders one of a sequence of frames, optionally preceded by a
+// prefix and followed by a suffix, advanced by calling Tick. It does not
+// animate on its own; call Tick whenever a new frame should be shown (e.g.
+// from a program-driven timer). Update, in contrast, paces advancement to
+// FrameRate regardless of how often TickEvent fires.
 type Spinner struct {
-	frames    []string
-	frame     int
-	text      string
-	style     *Style
-	frameRate time.Duration
-	elapsed   time.Duration
+	frames      []string
+	frame       int
+	style       *Style
+	prefix      string
+	prefixStyle *Style
+	suffix      string
+	suffixStyle *Style
+	frameRate   time.Duration
+	elapsed     time.Duration
 }
 
 func NewSpinner() *Spinner {
@@ -102,31 +107,76 @@ func (s *Spinner) Tick() *Spinner {
 	return s
 }
 
-func (s *Spinner) Text() string {
-	return s.text
-}
-
-// WithText sets the text rendered after the spinner's frame, separated by a
-// single space.
-func (s *Spinner) WithText(text string) *Spinner {
-	s.text = text
-	return s
-}
-
 func (s *Spinner) Style() *Style {
 	return s.style
 }
 
-// WithStyle sets the style applied to the spinner's current frame and text
-// when rendering.
+// WithStyle sets the style applied to the spinner's current frame when
+// rendering.
 func (s *Spinner) WithStyle(style Style) *Spinner {
 	s.style = &style
 	return s
 }
 
-// WithoutStyle removes the spinner's style, rendering plain text.
+// WithoutStyle removes the spinner's frame style, rendering it plain.
 func (s *Spinner) WithoutStyle() *Spinner {
 	s.style = nil
+	return s
+}
+
+func (s *Spinner) Prefix() string {
+	return s.prefix
+}
+
+// WithPrefix sets the text rendered before the spinner's frame, separated by
+// a single space.
+func (s *Spinner) WithPrefix(text string) *Spinner {
+	s.prefix = text
+	return s
+}
+
+func (s *Spinner) PrefixStyle() *Style {
+	return s.prefixStyle
+}
+
+// WithPrefixStyle sets the style applied to the spinner's prefix when
+// rendering.
+func (s *Spinner) WithPrefixStyle(style Style) *Spinner {
+	s.prefixStyle = &style
+	return s
+}
+
+// WithoutPrefixStyle removes the spinner's prefix style, rendering it plain.
+func (s *Spinner) WithoutPrefixStyle() *Spinner {
+	s.prefixStyle = nil
+	return s
+}
+
+func (s *Spinner) Suffix() string {
+	return s.suffix
+}
+
+// WithSuffix sets the text rendered after the spinner's frame, separated by
+// a single space.
+func (s *Spinner) WithSuffix(text string) *Spinner {
+	s.suffix = text
+	return s
+}
+
+func (s *Spinner) SuffixStyle() *Style {
+	return s.suffixStyle
+}
+
+// WithSuffixStyle sets the style applied to the spinner's suffix when
+// rendering.
+func (s *Spinner) WithSuffixStyle(style Style) *Spinner {
+	s.suffixStyle = &style
+	return s
+}
+
+// WithoutSuffixStyle removes the spinner's suffix style, rendering it plain.
+func (s *Spinner) WithoutSuffixStyle() *Spinner {
+	s.suffixStyle = nil
 	return s
 }
 
@@ -142,15 +192,19 @@ func (s *Spinner) WithFrameRate(d time.Duration) *Spinner {
 	return s
 }
 
-// PreferredWidth returns the widest of the spinner's frames plus its text,
-// so its size doesn't jitter as it animates.
+// PreferredWidth returns the widest of the spinner's frames plus its prefix
+// and suffix (whichever are set), each with their separating space, so its
+// size doesn't jitter as it animates.
 func (s *Spinner) PreferredWidth() int {
 	w := 0
 	for _, f := range s.frames {
 		w = max(w, ui.StringWidth(f))
 	}
-	if s.text != "" {
-		w += 1 + ui.StringWidth(s.text)
+	if s.prefix != "" {
+		w += ui.StringWidth(s.prefix) + 1
+	}
+	if s.suffix != "" {
+		w += ui.StringWidth(s.suffix) + 1
 	}
 	return w
 }
@@ -175,24 +229,48 @@ func (s *Spinner) Update(e Event) Event {
 	return e
 }
 
-// Render draws the spinner's current frame followed by its text (if set),
-// clipped to width columns.
+// Render draws the spinner's prefix (if set), its current frame, and its
+// suffix (if set), clipped to width columns. Each part keeps its own style;
+// the spaces separating them are left unstyled.
 func (s *Spinner) Render(width, height int) []string {
 	if width <= 0 || height <= 0 {
 		return nil
 	}
 
-	full := s.Frame()
-	if s.text != "" {
-		full += " " + s.text
+	type segment struct {
+		runes []rune
+		style *Style
 	}
 
-	runes := []rune(full)
-	n, _ := splitWidth(runes, width)
-	line := string(runes[:n])
-
-	if s.style != nil {
-		line = s.style.Render(line)
+	var segs []segment
+	if s.prefix != "" {
+		segs = append(segs, segment{[]rune(s.prefix), s.prefixStyle}, segment{[]rune(" "), nil})
 	}
-	return []string{line}
+	segs = append(segs, segment{[]rune(s.Frame()), s.style})
+	if s.suffix != "" {
+		segs = append(segs, segment{[]rune(" "), nil}, segment{[]rune(s.suffix), s.suffixStyle})
+	}
+
+	var full []rune
+	for _, seg := range segs {
+		full = append(full, seg.runes...)
+	}
+	n, _ := splitWidth(full, width)
+
+	var line strings.Builder
+	remaining := n
+	for _, seg := range segs {
+		if remaining <= 0 {
+			break
+		}
+		take := min(len(seg.runes), remaining)
+		text := string(seg.runes[:take])
+		if seg.style != nil && take > 0 {
+			text = seg.style.Render(text)
+		}
+		line.WriteString(text)
+		remaining -= take
+	}
+
+	return []string{line.String()}
 }

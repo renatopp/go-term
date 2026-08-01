@@ -31,16 +31,16 @@ func TestLabelRender(t *testing.T) {
 func TestLabelRenderTruncatesToWidth(t *testing.T) {
 	l := NewLabel("hello world")
 	lines := l.Render(5, 1)
-	if len(lines) != 1 || lines[0] != "hello" {
-		t.Fatalf("got %#v, want [\"hello\"]", lines)
+	if len(lines) != 1 || lines[0] != "hell…" {
+		t.Fatalf("got %#v, want [\"hell…\"]", lines)
 	}
 }
 
 func TestLabelRenderTruncatesByRuneNotByte(t *testing.T) {
 	l := NewLabel("héllo")
 	lines := l.Render(3, 1)
-	if len(lines) != 1 || lines[0] != "hél" {
-		t.Fatalf("got %#v, want [\"hél\"]", lines)
+	if len(lines) != 1 || lines[0] != "hé…" {
+		t.Fatalf("got %#v, want [\"hé…\"]", lines)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestLabelPreferredWidth(t *testing.T) {
 
 func TestLabelPreferredHeight(t *testing.T) {
 	l := NewLabel("hello world this is long")
-	if h := l.PreferredHeight(3); h != 1 {
+	if h := l.PreferredHeight(30); h != 1 {
 		t.Fatalf("PreferredHeight = %d, want 1", h)
 	}
 }

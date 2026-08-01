@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"strings"
 	"time"
 
@@ -11,24 +10,40 @@ import (
 )
 
 type Page struct {
-	spinner   *term.Spinner
-	cursor    *term.Cursor
-	progress  *term.ProgressBar
-	counter   *term.Counter
-	textInput *term.TextInput
+	components []term.Component
 }
 
 func NewPage() *Page {
 	return &Page{
-		spinner: term.NewSpinner().WithText("Loading..."),
-		cursor:  term.NewCursor(),
-		progress: term.NewProgressBar().
-			AsShowPercent(true).
-			// WithWidth(30).
-			WithPrefix("renato").
-			WithSuffix("pereira"),
-		counter:   term.NewCounter(0).WithSpeed(100 * time.Millisecond),
-		textInput: term.NewTextInput().WithWidth(10).Focus(),
+		components: []term.Component{
+			term.NewSpinner().WithSuffix("Loading..."),
+			term.NewCursor(),
+			term.NewProgressBar().
+				AsShowPercent(true).
+				WithPrefix("renato").
+				WithSuffix("pereira"),
+			term.NewIntCounter(0).
+				WithSpeed(100 * time.Millisecond).
+				WithPrefix("Int counter: "),
+			term.NewFloatCounter(0).
+				WithPrefix("Float counter: "),
+			term.NewTextInput().
+				WithPrefix("> ").
+				WithPlaceholder("username").
+				WithPlaceholderStyle(term.NewStyle().AsDim(true)).
+				WithWidth(10).
+				AsFocused(true),
+			term.NewPasswordInput().
+				WithPrefix("* ").
+				WithPlaceholder("password").
+				AsFocused(true),
+			term.NewNumberInput().
+				WithPrefix("$ ").
+				WithPlaceholder("number").
+				AsFocused(true),
+			term.NewConfirm("Confirm??").AsFocused(true),
+			term.NewSelect("a", "b", "c").AsFocused(true),
+		},
 	}
 }
 
@@ -38,58 +53,40 @@ func (p *Page) Update(e ui.Event) ui.Event {
 		if e.Rune == 'q' {
 			return term.Quit
 		}
-		p.counter.WithValue(rand.IntN(10000))
-		p.progress.WithValue(rand.Float64())
+		// p.intCounter.WithValue(rand.IntN(10000))
+		// p.floatCounter.WithValue(rand.Float64() * 10)
+		// p.progress.WithValue(rand.Float64())
+
 	case term.TickEvent:
 	}
 
-	p.spinner.Update(e)
-	p.cursor.Update(e)
-	p.progress.Update(e)
-	p.counter.Update(e)
-	p.textInput.Update(e)
+	for _, p := range p.components {
+		p.Update(e)
+	}
 
 	return e
 }
 
 func (p *Page) Render(width, height int) []string {
-	return ui.Column(
+	items := []*ui.ContainerItem{
 		ui.Item(ui.Row(
 			ui.Item(term.NewLabel("Name")).WithBasisPercent(30),
 			ui.Item(term.NewLabel("Renato")).WithBasisPercent(70),
 		)),
-		ui.Item(ui.Row(
-			ui.Item(term.NewLabel("Email")).WithBasisPercent(30),
-			ui.Item(term.NewLabel("renato@renato.com")).WithBasisPercent(70),
-		)),
 		ui.Item(
 			term.NewList("a", "b", "c"),
 		),
-		ui.Item(p.spinner),
-		ui.Item(p.cursor),
-		ui.Item(p.progress),
-		ui.Item(p.counter),
-		ui.Item(p.textInput),
-		ui.Spacer(),
-		ui.Item(
-			term.NewBox(
-				term.NewLabel("q quit").WithStyle(term.NewStyle().AsDim(true)),
-			).
-				WithBorder(term.BorderDouble).
-				WithPaddingXY(5, 0).
-				WithMargin(1).
-				WithStyle(term.NewStyle().AsDim(true)),
-		),
+	}
+	for _, c := range p.components {
+		items = append(items, ui.Item(c))
+	}
+
+	return ui.Column(
+		items...,
 	).Render(width, height)
 }
 
 func main() {
-	l := term.NewLabel("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since 1966, when designers at Letraset and James Mosley, the librarian at St Bride Printing Library in London, took a 1914 Cicero translation and scrambled it to make dummy text for Letraset's Body Type sheets. It has survived not only many decades, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised thanks to these sheets and more recently with desktop publishing software like Aldus PageMaker and Microsoft Word including versions of Lorem Ipsum.")
-	print(l, 100, 1)
-	print(l, 20, 5)
-	print(l, 10, 5)
-	print(l, 5, 5)
-
 	term.
 		NewProgram(NewPage()).
 		AsAlternateScreen().

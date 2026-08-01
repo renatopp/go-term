@@ -1,6 +1,11 @@
 package term
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/renatopp/go-term/term/ui"
+)
 
 func TestNewList(t *testing.T) {
 	l := NewList("a", "b")
@@ -143,6 +148,63 @@ func TestListPreferredWidth(t *testing.T) {
 	// "- " (2) + "longer item" (11) = 13
 	if w := l.PreferredWidth(); w != 13 {
 		t.Fatalf("PreferredWidth = %d, want 13", w)
+	}
+}
+
+func TestListWithoutStyle(t *testing.T) {
+	l := NewList("a").WithStyle(NewStyle().WithForeground(ColorRed)).WithoutStyle()
+	if l.Style() != nil {
+		t.Fatal("WithoutStyle should clear the style")
+	}
+}
+
+func TestListWithBulletStyle(t *testing.T) {
+	l := NewList("a").WithBulletStyle(NewStyle().WithForeground(ColorRed))
+	if l.BulletStyle() == nil {
+		t.Fatal("BulletStyle() should not be nil after WithBulletStyle")
+	}
+}
+
+func TestListWithoutBulletStyle(t *testing.T) {
+	l := NewList("a").WithBulletStyle(NewStyle().WithForeground(ColorRed)).WithoutBulletStyle()
+	if l.BulletStyle() != nil {
+		t.Fatal("WithoutBulletStyle should clear the bullet style")
+	}
+}
+
+func TestListRenderWithStyleStylesTextOnly(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	l := NewList("one").WithBullet("-").WithStyle(NewStyle().WithForeground(ColorRed))
+	lines := l.Render(10, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled text to contain an SGR sequence, got %q", lines[0])
+	}
+	if !strings.HasPrefix(lines[0], "- ") {
+		t.Fatalf("expected bullet to remain unstyled, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 5 {
+		t.Fatalf("StringWidth = %d, want 5", w)
+	}
+}
+
+func TestListRenderWithBulletStyleStylesBulletOnly(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	l := NewList("one").WithBullet("-").WithBulletStyle(NewStyle().WithForeground(ColorRed))
+	lines := l.Render(10, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled bullet to contain an SGR sequence, got %q", lines[0])
+	}
+	if !strings.HasSuffix(lines[0], " one") {
+		t.Fatalf("expected text to remain unstyled, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 5 {
+		t.Fatalf("StringWidth = %d, want 5", w)
 	}
 }
 

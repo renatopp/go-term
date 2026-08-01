@@ -76,6 +76,20 @@ func TestProgressBarWithEmptyChar(t *testing.T) {
 	}
 }
 
+func TestProgressBarWithChars(t *testing.T) {
+	p := NewProgressBar()
+	same := p.WithChars("#", "-")
+	if same != p {
+		t.Fatal("WithChars should return the same *ProgressBar for chaining")
+	}
+	if p.FilledChar() != "#" {
+		t.Fatalf("FilledChar() = %q, want %q", p.FilledChar(), "#")
+	}
+	if p.EmptyChar() != "-" {
+		t.Fatalf("EmptyChar() = %q, want %q", p.EmptyChar(), "-")
+	}
+}
+
 func TestProgressBarWithPrefix(t *testing.T) {
 	p := NewProgressBar().WithPrefix("Loading")
 	if p.Prefix() != "Loading" {
@@ -83,10 +97,31 @@ func TestProgressBarWithPrefix(t *testing.T) {
 	}
 }
 
+func TestProgressBarWithoutPrefixStyle(t *testing.T) {
+	p := NewProgressBar().WithPrefixStyle(NewStyle().WithForeground(ColorRed)).WithoutPrefixStyle()
+	if p.PrefixStyle() != nil {
+		t.Fatal("WithoutPrefixStyle should clear the style")
+	}
+}
+
 func TestProgressBarWithSuffix(t *testing.T) {
 	p := NewProgressBar().WithSuffix("Done")
 	if p.Suffix() != "Done" {
 		t.Fatalf("Suffix() = %q, want %q", p.Suffix(), "Done")
+	}
+}
+
+func TestProgressBarWithoutSuffixStyle(t *testing.T) {
+	p := NewProgressBar().WithSuffixStyle(NewStyle().WithForeground(ColorRed)).WithoutSuffixStyle()
+	if p.SuffixStyle() != nil {
+		t.Fatal("WithoutSuffixStyle should clear the style")
+	}
+}
+
+func TestProgressBarWithoutPercentStyle(t *testing.T) {
+	p := NewProgressBar().WithPercentStyle(NewStyle().WithForeground(ColorRed)).WithoutPercentStyle()
+	if p.PercentStyle() != nil {
+		t.Fatal("WithoutPercentStyle should clear the style")
 	}
 }
 
@@ -128,17 +163,17 @@ func TestProgressBarPreferredWidth(t *testing.T) {
 
 func TestProgressBarPreferredWidthWithPrefix(t *testing.T) {
 	p := NewProgressBar().WithWidth(10).WithPrefix("Loading")
-	// "Loading" (7) + " " (1) + bar 10 = 18
-	if w := p.PreferredWidth(); w != 18 {
-		t.Fatalf("PreferredWidth() = %d, want 18", w)
+	// "Loading" (7, touching the bar) + bar 10 = 17
+	if w := p.PreferredWidth(); w != 17 {
+		t.Fatalf("PreferredWidth() = %d, want 17", w)
 	}
 }
 
 func TestProgressBarPreferredWidthWithSuffix(t *testing.T) {
 	p := NewProgressBar().WithWidth(10).WithSuffix("Done")
-	// bar 10 + " " (1) + "Done" (4) = 15
-	if w := p.PreferredWidth(); w != 15 {
-		t.Fatalf("PreferredWidth() = %d, want 15", w)
+	// bar 10 + "Done" (4, touching the bar) = 14
+	if w := p.PreferredWidth(); w != 14 {
+		t.Fatalf("PreferredWidth() = %d, want 14", w)
 	}
 }
 
@@ -152,9 +187,9 @@ func TestProgressBarPreferredWidthWithPercent(t *testing.T) {
 
 func TestProgressBarPreferredWidthWithPrefixSuffixAndPercent(t *testing.T) {
 	p := NewProgressBar().WithWidth(10).WithPrefix("Loading").WithSuffix("Done").AsShowPercent(true)
-	// "Loading" (7) + " " (1) + bar 10 + " " (1) + "Done" (4) + " " (1) + "100%" (4) = 28
-	if w := p.PreferredWidth(); w != 28 {
-		t.Fatalf("PreferredWidth() = %d, want 28", w)
+	// "Loading" (7) + bar 10 + "Done" (4) + " " (1) + "100%" (4) = 26
+	if w := p.PreferredWidth(); w != 26 {
+		t.Fatalf("PreferredWidth() = %d, want 26", w)
 	}
 }
 
@@ -212,7 +247,7 @@ func TestProgressBarRenderWithCustomChars(t *testing.T) {
 func TestProgressBarRenderWithPrefix(t *testing.T) {
 	p := NewProgressBar().WithWidth(4).WithValue(1).WithPrefix("Load")
 	lines := p.Render(9, 1)
-	want := []string{"Load ████"}
+	want := []string{"Load████ "}
 	if len(lines) != 1 || lines[0] != want[0] {
 		t.Fatalf("got %#v, want %#v", lines, want)
 	}
@@ -221,7 +256,7 @@ func TestProgressBarRenderWithPrefix(t *testing.T) {
 func TestProgressBarRenderWithSuffix(t *testing.T) {
 	p := NewProgressBar().WithWidth(4).WithValue(1).WithSuffix("Done")
 	lines := p.Render(9, 1)
-	want := []string{"████ Done"}
+	want := []string{"████Done "}
 	if len(lines) != 1 || lines[0] != want[0] {
 		t.Fatalf("got %#v, want %#v", lines, want)
 	}
@@ -239,7 +274,7 @@ func TestProgressBarRenderWithPercent(t *testing.T) {
 func TestProgressBarRenderWithPrefixSuffixAndPercent(t *testing.T) {
 	p := NewProgressBar().WithWidth(4).WithValue(0.5).WithPrefix("Load").WithSuffix("Done").AsShowPercent(true)
 	lines := p.Render(19, 1)
-	want := []string{"Load ██░░  50% Done"}
+	want := []string{"Load██░░Done  50%  "}
 	if len(lines) != 1 || lines[0] != want[0] {
 		t.Fatalf("got %#v, want %#v", lines, want)
 	}
@@ -248,10 +283,11 @@ func TestProgressBarRenderWithPrefixSuffixAndPercent(t *testing.T) {
 func TestProgressBarRenderDefaultWidthReservesSpaceForTextAndPercent(t *testing.T) {
 	// With the default (effectively unbounded) width, the bar must still
 	// leave room for the prefix, percentage, and suffix instead of consuming
-	// the whole render width and truncating them off.
+	// the whole render width and truncating them off; the leftover space
+	// (after reserving for text and percent) all goes to the track.
 	p := NewProgressBar().WithValue(0.5).WithPrefix("Load").WithSuffix("Done").AsShowPercent(true)
 	lines := p.Render(19, 1)
-	want := []string{"Load ██░░  50% Done"}
+	want := []string{"Load███░░░Done  50%"}
 	if len(lines) != 1 || lines[0] != want[0] {
 		t.Fatalf("got %#v, want %#v", lines, want)
 	}
@@ -335,5 +371,50 @@ func TestProgressBarRenderWithEmptyStyle(t *testing.T) {
 	}
 	if w := ui.StringWidth(lines[0]); w != 4 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 4", w)
+	}
+}
+
+func TestProgressBarRenderWithPrefixStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	p := NewProgressBar().WithWidth(4).WithPrefix("Load").WithPrefixStyle(NewStyle().WithForeground(ColorRed))
+	lines := p.Render(9, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled prefix to contain an SGR sequence, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 9 {
+		t.Fatalf("StringWidth(lines[0]) = %d, want 9", w)
+	}
+}
+
+func TestProgressBarRenderWithSuffixStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	p := NewProgressBar().WithWidth(4).WithSuffix("Done").WithSuffixStyle(NewStyle().WithForeground(ColorRed))
+	lines := p.Render(9, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled suffix to contain an SGR sequence, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 9 {
+		t.Fatalf("StringWidth(lines[0]) = %d, want 9", w)
+	}
+}
+
+func TestProgressBarRenderWithPercentStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	p := NewProgressBar().WithWidth(4).WithValue(0.5).AsShowPercent(true).WithPercentStyle(NewStyle().WithForeground(ColorRed))
+	lines := p.Render(9, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled percent to contain an SGR sequence, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 9 {
+		t.Fatalf("StringWidth(lines[0]) = %d, want 9", w)
 	}
 }

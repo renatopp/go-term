@@ -22,3 +22,5 @@ Internal Coding Rules:
 
 Widgets:
 - Always add WithStyle(term.NewStyle) unless component has no output
+- Widgets that have focus control, should implement the Focus() and Blur() methods (without return) and AsFocused(v bool) returning itself
+- Widgets should have suffix and prefix text (if make sense, for example, label do not make sense), with individual styling

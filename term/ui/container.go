@@ -36,21 +36,21 @@ type container struct {
 	gap       int
 	paddingX  int
 	paddingY  int
-	items     []*item
+	items     []*ContainerItem
 }
 
-func Container(direction Direction, items ...*item) *container {
+func Container(direction Direction, items ...*ContainerItem) *container {
 	return (&container{
 		direction: direction,
 		align:     AlignStretch,
 	}).WithItem(items...)
 }
 
-func Row(items ...*item) *container {
+func Row(items ...*ContainerItem) *container {
 	return Container(DirectionRow).WithItem(items...)
 }
 
-func Column(items ...*item) *container {
+func Column(items ...*ContainerItem) *container {
 	return Container(DirectionColumn).WithItem(items...)
 }
 
@@ -87,7 +87,7 @@ func (c *container) WithPaddingXY(x, y int) *container {
 }
 
 // WithItem adds the given items as children of the container.
-func (c *container) WithItem(items ...*item) *container {
+func (c *container) WithItem(items ...*ContainerItem) *container {
 	c.items = append(c.items, items...)
 	return c
 }
@@ -95,7 +95,7 @@ func (c *container) WithItem(items ...*item) *container {
 // RemoveItem removes the given items from the container's children, if
 // present. Items not added via WithItem (e.g. those wrapped internally by
 // WithComponent) cannot be matched and are ignored.
-func (c *container) RemoveItem(items ...*item) *container {
+func (c *container) RemoveItem(items ...*ContainerItem) *container {
 	remaining := c.items[:0]
 outer:
 	for _, existing := range c.items {
@@ -300,8 +300,8 @@ func (c *container) PreferredHeight(width int) int {
 	return h + 2*c.paddingY
 }
 
-func (c *container) visibleItems() []*item {
-	items := make([]*item, 0, len(c.items))
+func (c *container) visibleItems() []*ContainerItem {
+	items := make([]*ContainerItem, 0, len(c.items))
 	for _, item := range c.items {
 		if !item.hidden {
 			items = append(items, item)

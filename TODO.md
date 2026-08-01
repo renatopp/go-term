@@ -21,17 +21,15 @@
     [ ] Dynamic
       [x] Spinners
       [x] Progress bars
-      [ ] Counters
-      [ ] Timers
-      [ ] Badges
+      [x] Counters
       [ ] Gauges
     [ ] Inputs
-      [ ] Confirm prompt
-      [ ] Input prompt
-      [ ] Select prompt
+      [x] Confirm prompt
+      [x] Input prompt
+      [x] Select prompt
       [ ] Multi-select prompt
-      [ ] Password prompt
-      [ ] Number prompt
+      [-] Password prompt
+      [-] Number prompt
       [ ] Fuzzy search prompt
 [x] Styles
   [x] Colors Types and Initialization (ansi, 256, 24-bit, hex)

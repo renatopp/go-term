@@ -22,19 +22,22 @@ const DefaultProgressBarFilledChar = "█"
 const DefaultProgressBarEmptyChar = "░"
 
 // ProgressBar renders a horizontal bar filled in proportion to a value
-// between 0 and 1, optionally preceded by a prefix and followed by a
-// percentage and a suffix. It does not animate on its own; call WithValue
-// whenever progress changes.
+// between 0 and 1, optionally preceded by a prefix (touching the bar) and
+// followed by a suffix (also touching the bar) and a percentage. It does not
+// animate on its own; call WithValue whenever progress changes.
 type ProgressBar struct {
-	value       float64
-	width       int
-	filledChar  string
-	emptyChar   string
-	prefix      string
-	suffix      string
-	showPercent bool
-	style       *Style
-	emptyStyle  *Style
+	value        float64
+	width        int
+	filledChar   string
+	emptyChar    string
+	prefix       string
+	suffix       string
+	showPercent  bool
+	style        *Style
+	emptyStyle   *Style
+	prefixStyle  *Style
+	suffixStyle  *Style
+	percentStyle *Style
 }
 
 func NewProgressBar() *ProgressBar {
@@ -96,14 +99,38 @@ func (p *ProgressBar) WithEmptyChar(ch string) *ProgressBar {
 	return p
 }
 
+// WithChars sets the characters rendered for each filled and empty cell of
+// the bar in one call.
+func (p *ProgressBar) WithChars(filled, empty string) *ProgressBar {
+	p.filledChar = filled
+	p.emptyChar = empty
+	return p
+}
+
 func (p *ProgressBar) Prefix() string {
 	return p.prefix
 }
 
-// WithPrefix sets the text rendered before the bar, separated by a single
-// space.
+// WithPrefix sets the text rendered immediately before the bar, with no
+// separating space.
 func (p *ProgressBar) WithPrefix(text string) *ProgressBar {
 	p.prefix = text
+	return p
+}
+
+func (p *ProgressBar) PrefixStyle() *Style {
+	return p.prefixStyle
+}
+
+// WithPrefixStyle sets the style applied to the bar's prefix when rendering.
+func (p *ProgressBar) WithPrefixStyle(s Style) *ProgressBar {
+	p.prefixStyle = &s
+	return p
+}
+
+// WithoutPrefixStyle removes the bar's prefix style, rendering it plain.
+func (p *ProgressBar) WithoutPrefixStyle() *ProgressBar {
+	p.prefixStyle = nil
 	return p
 }
 
@@ -111,10 +138,26 @@ func (p *ProgressBar) Suffix() string {
 	return p.suffix
 }
 
-// WithSuffix sets the text rendered after the bar (and its percentage, if
-// shown), separated by a single space.
+// WithSuffix sets the text rendered immediately after the bar (and before
+// its percentage, if shown), with no separating space.
 func (p *ProgressBar) WithSuffix(text string) *ProgressBar {
 	p.suffix = text
+	return p
+}
+
+func (p *ProgressBar) SuffixStyle() *Style {
+	return p.suffixStyle
+}
+
+// WithSuffixStyle sets the style applied to the bar's suffix when rendering.
+func (p *ProgressBar) WithSuffixStyle(s Style) *ProgressBar {
+	p.suffixStyle = &s
+	return p
+}
+
+// WithoutSuffixStyle removes the bar's suffix style, rendering it plain.
+func (p *ProgressBar) WithoutSuffixStyle() *ProgressBar {
+	p.suffixStyle = nil
 	return p
 }
 
@@ -126,6 +169,24 @@ func (p *ProgressBar) ShowPercent() bool {
 // it, separated by a single space.
 func (p *ProgressBar) AsShowPercent(v bool) *ProgressBar {
 	p.showPercent = v
+	return p
+}
+
+func (p *ProgressBar) PercentStyle() *Style {
+	return p.percentStyle
+}
+
+// WithPercentStyle sets the style applied to the bar's percentage when
+// rendering.
+func (p *ProgressBar) WithPercentStyle(s Style) *ProgressBar {
+	p.percentStyle = &s
+	return p
+}
+
+// WithoutPercentStyle removes the bar's percentage style, rendering it
+// plain.
+func (p *ProgressBar) WithoutPercentStyle() *ProgressBar {
+	p.percentStyle = nil
 	return p
 }
 
@@ -164,15 +225,16 @@ func (p *ProgressBar) WithoutEmptyStyle() *ProgressBar {
 	return p
 }
 
-// PreferredWidth returns the bar's track width plus its prefix, suffix, and
-// percentage (whichever are set), each with their separating space.
+// PreferredWidth returns the bar's track width plus its prefix and suffix
+// (touching the bar, so no separating space) and its percentage (whichever
+// are set), which keeps a separating space before it.
 func (p *ProgressBar) PreferredWidth() int {
 	w := p.width
 	if p.prefix != "" {
-		w += ui.StringWidth(p.prefix) + 1
+		w += ui.StringWidth(p.prefix)
 	}
 	if p.suffix != "" {
-		w += ui.StringWidth(p.suffix) + 1
+		w += ui.StringWidth(p.suffix)
 	}
 	if p.showPercent {
 		w += 5 // " " + "100%"
@@ -188,11 +250,12 @@ func (p *ProgressBar) Update(e Event) Event {
 	return e
 }
 
-// Render draws the bar's prefix (if set), its filled and empty portions, its
-// percentage (if shown), and its suffix (if set), clipped or padded to fit
-// exactly width columns. The bar's track is sized to the smaller of its
-// configured width and the render width left over once its prefix,
-// percentage, and suffix (whichever are set) reserve their own space.
+// Render draws the bar's prefix (if set, touching the bar), its filled and
+// empty portions, its suffix (if set, also touching the bar), and its
+// percentage (if shown), clipped or padded to fit exactly width columns. The
+// bar's track is sized to the smaller of its configured width and the render
+// width left over once its prefix, suffix, and percentage (whichever are
+// set) reserve their own space.
 func (p *ProgressBar) Render(width, height int) []string {
 	if width <= 0 || height <= 0 {
 		return nil
@@ -200,10 +263,10 @@ func (p *ProgressBar) Render(width, height int) []string {
 
 	reserved := 0
 	if p.prefix != "" {
-		reserved += ui.StringWidth(p.prefix) + 1
+		reserved += ui.StringWidth(p.prefix)
 	}
 	if p.suffix != "" {
-		reserved += ui.StringWidth(p.suffix) + 1
+		reserved += ui.StringWidth(p.suffix)
 	}
 	if p.showPercent {
 		reserved += 5 // " " + "100%"
@@ -224,18 +287,28 @@ func (p *ProgressBar) Render(width, height int) []string {
 
 	var line strings.Builder
 	if p.prefix != "" {
-		line.WriteString(p.prefix)
-		line.WriteString(" ")
+		prefix := p.prefix
+		if p.prefixStyle != nil {
+			prefix = p.prefixStyle.Render(prefix)
+		}
+		line.WriteString(prefix)
 	}
 	line.WriteString(bar)
 	line.WriteString(track)
+	if p.suffix != "" {
+		suffix := p.suffix
+		if p.suffixStyle != nil {
+			suffix = p.suffixStyle.Render(suffix)
+		}
+		line.WriteString(suffix)
+	}
 	if p.showPercent {
 		line.WriteString(" ")
-		fmt.Fprintf(&line, "%3d%%", int(math.Round(p.value*100)))
-	}
-	if p.suffix != "" {
-		line.WriteString(" ")
-		line.WriteString(p.suffix)
+		percent := fmt.Sprintf("%3d%%", int(math.Round(p.value*100)))
+		if p.percentStyle != nil {
+			percent = p.percentStyle.Render(percent)
+		}
+		line.WriteString(percent)
 	}
 
 	return []string{ui.RenderRow(ui.BuildRow(line.String(), width))}

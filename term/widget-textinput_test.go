@@ -45,7 +45,7 @@ func TestTextInputWithValuePtrReadsInitial(t *testing.T) {
 
 func TestTextInputWithValuePtrSyncsOnEdit(t *testing.T) {
 	var v string
-	ti := NewTextInput().WithValuePtr(&v).Focus()
+	ti := NewTextInput().WithValuePtr(&v).AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'a'})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'b'})
 	if v != "ab" {
@@ -60,6 +60,82 @@ func TestTextInputWithoutStyle(t *testing.T) {
 	ti := NewTextInput().WithStyle(NewStyle().WithForeground(ColorRed)).WithoutStyle()
 	if ti.Style() != nil {
 		t.Fatal("WithoutStyle should clear the style")
+	}
+}
+
+func TestTextInputWithPlaceholder(t *testing.T) {
+	ti := NewTextInput()
+	same := ti.WithPlaceholder("type here")
+	if same != ti {
+		t.Fatal("WithPlaceholder should return the same *TextInput for chaining")
+	}
+	if ti.Placeholder() != "type here" {
+		t.Fatalf("Placeholder() = %q, want %q", ti.Placeholder(), "type here")
+	}
+}
+
+func TestTextInputWithPlaceholderStyle(t *testing.T) {
+	ti := NewTextInput().WithPlaceholderStyle(NewStyle().WithForeground(ColorRed))
+	if ti.PlaceholderStyle() == nil {
+		t.Fatal("PlaceholderStyle() should not be nil after WithPlaceholderStyle")
+	}
+
+	ti.WithoutPlaceholderStyle()
+	if ti.PlaceholderStyle() != nil {
+		t.Fatal("WithoutPlaceholderStyle should clear the placeholder style")
+	}
+}
+
+func TestTextInputWithPrefix(t *testing.T) {
+	ti := NewTextInput()
+	same := ti.WithPrefix(">> ")
+	if same != ti {
+		t.Fatal("WithPrefix should return the same *TextInput for chaining")
+	}
+	if ti.Prefix() != ">> " {
+		t.Fatalf("Prefix() = %q, want %q", ti.Prefix(), ">> ")
+	}
+}
+
+func TestTextInputWithPrefixStyle(t *testing.T) {
+	ti := NewTextInput().WithPrefixStyle(NewStyle().WithForeground(ColorRed))
+	if ti.PrefixStyle() == nil {
+		t.Fatal("PrefixStyle() should not be nil after WithPrefixStyle")
+	}
+
+	ti.WithoutPrefixStyle()
+	if ti.PrefixStyle() != nil {
+		t.Fatal("WithoutPrefixStyle should clear the prefix style")
+	}
+}
+
+func TestTextInputWithSuffix(t *testing.T) {
+	ti := NewTextInput()
+	same := ti.WithSuffix(" <<")
+	if same != ti {
+		t.Fatal("WithSuffix should return the same *TextInput for chaining")
+	}
+	if ti.Suffix() != " <<" {
+		t.Fatalf("Suffix() = %q, want %q", ti.Suffix(), " <<")
+	}
+}
+
+func TestTextInputWithSuffixStyle(t *testing.T) {
+	ti := NewTextInput().WithSuffixStyle(NewStyle().WithForeground(ColorRed))
+	if ti.SuffixStyle() == nil {
+		t.Fatal("SuffixStyle() should not be nil after WithSuffixStyle")
+	}
+
+	ti.WithoutSuffixStyle()
+	if ti.SuffixStyle() != nil {
+		t.Fatal("WithoutSuffixStyle should clear the suffix style")
+	}
+}
+
+func TestTextInputPreferredWidthIncludesPrefixAndSuffix(t *testing.T) {
+	ti := NewTextInput().WithWidth(10).WithPrefix(">> ").WithSuffix(" <<")
+	if w := ti.PreferredWidth(); w != 16 {
+		t.Fatalf("PreferredWidth() = %d, want 16", w)
 	}
 }
 
@@ -86,20 +162,30 @@ func TestTextInputPreferredHeight(t *testing.T) {
 
 func TestTextInputFocusBlur(t *testing.T) {
 	ti := NewTextInput()
-	same := ti.Focus()
-	if same != ti {
-		t.Fatal("Focus should return the same *TextInput for chaining")
-	}
+	ti.Focus()
 	if !ti.Focused() {
 		t.Fatal("Focused() should be true after Focus")
 	}
 
-	same = ti.Blur()
-	if same != ti {
-		t.Fatal("Blur should return the same *TextInput for chaining")
-	}
+	ti.Blur()
 	if ti.Focused() {
 		t.Fatal("Focused() should be false after Blur")
+	}
+}
+
+func TestTextInputAsFocused(t *testing.T) {
+	ti := NewTextInput()
+	same := ti.AsFocused(true)
+	if same != ti {
+		t.Fatal("AsFocused should return the same *TextInput for chaining")
+	}
+	if !ti.Focused() {
+		t.Fatal("Focused() should be true after AsFocused(true)")
+	}
+
+	ti.AsFocused(false)
+	if ti.Focused() {
+		t.Fatal("Focused() should be false after AsFocused(false)")
 	}
 }
 
@@ -112,7 +198,7 @@ func TestTextInputIgnoresKeysWhenBlurred(t *testing.T) {
 }
 
 func TestTextInputInsertsRuneWhenFocused(t *testing.T) {
-	ti := NewTextInput().Focus()
+	ti := NewTextInput().AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'a'})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'b'})
 	if ti.Value() != "ab" {
@@ -121,7 +207,7 @@ func TestTextInputInsertsRuneWhenFocused(t *testing.T) {
 }
 
 func TestTextInputInsertAtCursorPosition(t *testing.T) {
-	ti := NewTextInput().WithValue("ac").Focus()
+	ti := NewTextInput().WithValue("ac").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyLeft})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'b'})
 	if ti.Value() != "abc" {
@@ -130,7 +216,7 @@ func TestTextInputInsertAtCursorPosition(t *testing.T) {
 }
 
 func TestTextInputIgnoresCtrlAndAltRunes(t *testing.T) {
-	ti := NewTextInput().Focus()
+	ti := NewTextInput().AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'c', Ctrl: true})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'x', Alt: true})
 	if ti.Value() != "" {
@@ -139,7 +225,7 @@ func TestTextInputIgnoresCtrlAndAltRunes(t *testing.T) {
 }
 
 func TestTextInputBackspace(t *testing.T) {
-	ti := NewTextInput().WithValue("abc").Focus()
+	ti := NewTextInput().WithValue("abc").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyBackspace})
 	if ti.Value() != "ab" {
 		t.Fatalf("Value() = %q, want %q", ti.Value(), "ab")
@@ -147,7 +233,7 @@ func TestTextInputBackspace(t *testing.T) {
 }
 
 func TestTextInputBackspaceAtStartIsNoop(t *testing.T) {
-	ti := NewTextInput().Focus()
+	ti := NewTextInput().AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyBackspace})
 	if ti.Value() != "" {
 		t.Fatalf("Value() = %q, want empty", ti.Value())
@@ -155,7 +241,7 @@ func TestTextInputBackspaceAtStartIsNoop(t *testing.T) {
 }
 
 func TestTextInputDelete(t *testing.T) {
-	ti := NewTextInput().WithValue("abc").Focus()
+	ti := NewTextInput().WithValue("abc").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyHome})
 	ti.Update(KeyEvent{Type: KeyDelete})
 	if ti.Value() != "bc" {
@@ -164,7 +250,7 @@ func TestTextInputDelete(t *testing.T) {
 }
 
 func TestTextInputDeleteAtEndIsNoop(t *testing.T) {
-	ti := NewTextInput().WithValue("abc").Focus()
+	ti := NewTextInput().WithValue("abc").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyDelete})
 	if ti.Value() != "abc" {
 		t.Fatalf("Value() = %q, want %q", ti.Value(), "abc")
@@ -172,7 +258,7 @@ func TestTextInputDeleteAtEndIsNoop(t *testing.T) {
 }
 
 func TestTextInputHomeThenInsert(t *testing.T) {
-	ti := NewTextInput().WithValue("bc").Focus()
+	ti := NewTextInput().WithValue("bc").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyHome})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'a'})
 	if ti.Value() != "abc" {
@@ -181,7 +267,7 @@ func TestTextInputHomeThenInsert(t *testing.T) {
 }
 
 func TestTextInputEndThenInsert(t *testing.T) {
-	ti := NewTextInput().WithValue("ab").Focus()
+	ti := NewTextInput().WithValue("ab").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyHome})
 	ti.Update(KeyEvent{Type: KeyEnd})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'c'})
@@ -191,7 +277,7 @@ func TestTextInputEndThenInsert(t *testing.T) {
 }
 
 func TestTextInputLeftAtStartIsNoop(t *testing.T) {
-	ti := NewTextInput().WithValue("bc").Focus()
+	ti := NewTextInput().WithValue("bc").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyLeft})
 	ti.Update(KeyEvent{Type: KeyLeft})
 	ti.Update(KeyEvent{Type: KeyRune, Rune: 'a'})
@@ -201,7 +287,7 @@ func TestTextInputLeftAtStartIsNoop(t *testing.T) {
 }
 
 func TestTextInputRightAtEndIsNoop(t *testing.T) {
-	ti := NewTextInput().WithValue("ab").Focus()
+	ti := NewTextInput().WithValue("ab").AsFocused(true)
 	for range 5 {
 		ti.Update(KeyEvent{Type: KeyRight})
 	}
@@ -212,7 +298,7 @@ func TestTextInputRightAtEndIsNoop(t *testing.T) {
 }
 
 func TestTextInputUpdateReturnsEventUnchanged(t *testing.T) {
-	ti := NewTextInput().Focus()
+	ti := NewTextInput().AsFocused(true)
 	e := KeyEvent{Type: KeyRune, Rune: 'a'}
 	if got := ti.Update(e); got != Event(e) {
 		t.Fatalf("Update should return the event unchanged, got %#v", got)
@@ -230,7 +316,7 @@ func TestTextInputRenderPadsToWidth(t *testing.T) {
 func TestTextInputRenderShrinksToConfiguredWidth(t *testing.T) {
 	// A configured width smaller than the render width caps the visible
 	// window, padding the remainder with blanks up to the full render width.
-	ti := NewTextInput().WithValue("abcdef").WithWidth(3).Focus()
+	ti := NewTextInput().WithValue("abcdef").WithWidth(3).AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyHome})
 	ti.Blur()
 	lines := ti.Render(10, 1)
@@ -242,7 +328,7 @@ func TestTextInputRenderShrinksToConfiguredWidth(t *testing.T) {
 func TestTextInputRenderDefaultWidthFillsRenderWidth(t *testing.T) {
 	// An unconfigured input's width (DefaultTextInputWidth) is effectively
 	// unbounded, so it fills whatever width it's rendered with.
-	ti := NewTextInput().WithValue("abcdef").Focus()
+	ti := NewTextInput().WithValue("abcdef").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyHome})
 	ti.Blur()
 	lines := ti.Render(4, 1)
@@ -270,7 +356,7 @@ func TestTextInputRenderHidesCursorWhenBlurred(t *testing.T) {
 }
 
 func TestTextInputRenderShowsCursorAtEndWhenFocusedAndEmpty(t *testing.T) {
-	ti := NewTextInput().Focus()
+	ti := NewTextInput().AsFocused(true)
 	lines := ti.Render(3, 1)
 	want := DefaultCursorChar + "  "
 	if len(lines) != 1 || lines[0] != want {
@@ -279,7 +365,7 @@ func TestTextInputRenderShowsCursorAtEndWhenFocusedAndEmpty(t *testing.T) {
 }
 
 func TestTextInputRenderCursorOverlaysCharacterAtPosition(t *testing.T) {
-	ti := NewTextInput().WithValue("ab").Focus()
+	ti := NewTextInput().WithValue("ab").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyLeft})
 	lines := ti.Render(5, 1)
 	want := "a" + DefaultCursorChar + "   "
@@ -289,7 +375,7 @@ func TestTextInputRenderCursorOverlaysCharacterAtPosition(t *testing.T) {
 }
 
 func TestTextInputRenderRevealsCharacterWhenCursorBlinkedOff(t *testing.T) {
-	ti := NewTextInput().WithValue("ab").Focus()
+	ti := NewTextInput().WithValue("ab").AsFocused(true)
 	ti.Update(KeyEvent{Type: KeyLeft})
 
 	base := time.Unix(0, 0)
@@ -305,7 +391,7 @@ func TestTextInputRenderRevealsCharacterWhenCursorBlinkedOff(t *testing.T) {
 }
 
 func TestTextInputCursorCustomChar(t *testing.T) {
-	ti := NewTextInput().Focus()
+	ti := NewTextInput().AsFocused(true)
 	ti.Cursor().WithChar("_")
 	lines := ti.Render(3, 1)
 	want := "_  "
@@ -315,7 +401,7 @@ func TestTextInputCursorCustomChar(t *testing.T) {
 }
 
 func TestTextInputRenderScrollsRightToKeepCursorVisible(t *testing.T) {
-	ti := NewTextInput().WithValue("abcdef").WithWidth(3).Focus()
+	ti := NewTextInput().WithValue("abcdef").WithWidth(3).AsFocused(true)
 	lines := ti.Render(3, 1)
 	want := "ef" + DefaultCursorChar
 	if len(lines) != 1 || lines[0] != want {
@@ -324,7 +410,7 @@ func TestTextInputRenderScrollsRightToKeepCursorVisible(t *testing.T) {
 }
 
 func TestTextInputRenderScrollsLeftAfterMovingCursorBack(t *testing.T) {
-	ti := NewTextInput().WithValue("abcdef").WithWidth(3).Focus()
+	ti := NewTextInput().WithValue("abcdef").WithWidth(3).AsFocused(true)
 	ti.Render(3, 1)
 	for range 6 {
 		ti.Update(KeyEvent{Type: KeyLeft})
@@ -348,5 +434,85 @@ func TestTextInputRenderWithStyle(t *testing.T) {
 	}
 	if lines[0] == "ab" {
 		t.Fatalf("expected styled text to contain an SGR sequence, got %q", lines[0])
+	}
+}
+
+func TestTextInputRenderWithPrefixAndSuffix(t *testing.T) {
+	ti := NewTextInput().WithValue("ab").WithPrefix("[").WithSuffix("]")
+	lines := ti.Render(6, 1)
+	want := "[ab  ]"
+	if len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %#v, want [%q]", lines, want)
+	}
+}
+
+func TestTextInputRenderClipsPrefixAndSuffixToWidth(t *testing.T) {
+	// The field shrinks to make room for the prefix and suffix, and the
+	// suffix is dropped entirely once the prefix alone fills the width.
+	ti := NewTextInput().WithValue("x").WithPrefix("abcde").WithSuffix("fghij")
+	lines := ti.Render(3, 1)
+	want := "abc"
+	if len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %#v, want [%q]", lines, want)
+	}
+}
+
+func TestTextInputRenderWithPrefixAndSuffixStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	ti := NewTextInput().
+		WithValue("ab").
+		WithPrefix("[").WithPrefixStyle(NewStyle().WithForeground(ColorRed)).
+		WithSuffix("]").WithSuffixStyle(NewStyle().WithForeground(ColorBlue))
+	lines := ti.Render(6, 1)
+	if len(lines) != 1 {
+		t.Fatalf("got %#v, want 1 line", lines)
+	}
+	if lines[0] == "[ab  ]" {
+		t.Fatalf("expected styled prefix/suffix to contain SGR sequences, got %q", lines[0])
+	}
+}
+
+func TestTextInputRenderShowsPlaceholderWhenEmpty(t *testing.T) {
+	ti := NewTextInput().WithPlaceholder("search")
+	lines := ti.Render(10, 1)
+	want := "search    "
+	if len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %#v, want [%q]", lines, want)
+	}
+}
+
+func TestTextInputRenderHidesPlaceholderWhenValueSet(t *testing.T) {
+	ti := NewTextInput().WithValue("ab").WithPlaceholder("search")
+	lines := ti.Render(10, 1)
+	want := "ab        "
+	if len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %#v, want [%q]", lines, want)
+	}
+}
+
+func TestTextInputRenderPlaceholderCursorAtStartWhenFocused(t *testing.T) {
+	ti := NewTextInput().WithPlaceholder("abc").AsFocused(true)
+	lines := ti.Render(5, 1)
+	want := DefaultCursorChar + "bc  "
+	if len(lines) != 1 || lines[0] != want {
+		t.Fatalf("got %#v, want [%q]", lines, want)
+	}
+}
+
+func TestTextInputRenderWithPlaceholderStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	ti := NewTextInput().WithPlaceholder("ab").WithPlaceholderStyle(NewStyle().WithForeground(ColorRed))
+	lines := ti.Render(2, 1)
+	if len(lines) != 1 {
+		t.Fatalf("got %#v, want 1 line", lines)
+	}
+	if lines[0] == "ab" {
+		t.Fatalf("expected styled placeholder to contain an SGR sequence, got %q", lines[0])
 	}
 }

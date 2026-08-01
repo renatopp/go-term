@@ -1,8 +1,11 @@
 package term
 
 import (
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/renatopp/go-term/term/ui"
 )
 
 func TestNewSpinner(t *testing.T) {
@@ -145,38 +148,150 @@ func TestSpinnerRender(t *testing.T) {
 	}
 }
 
-func TestSpinnerWithText(t *testing.T) {
+func TestSpinnerWithSuffix(t *testing.T) {
 	s := NewSpinner()
-	same := s.WithText("Loading")
+	same := s.WithSuffix("Loading")
 	if same != s {
-		t.Fatal("WithText should return the same *Spinner for chaining")
+		t.Fatal("WithSuffix should return the same *Spinner for chaining")
 	}
-	if s.Text() != "Loading" {
-		t.Fatalf("Text() = %q, want %q", s.Text(), "Loading")
+	if s.Suffix() != "Loading" {
+		t.Fatalf("Suffix() = %q, want %q", s.Suffix(), "Loading")
 	}
 }
 
-func TestSpinnerRenderWithText(t *testing.T) {
-	s := NewSpinner().WithFrames("*").WithText("Loading")
+func TestSpinnerRenderWithSuffix(t *testing.T) {
+	s := NewSpinner().WithFrames("*").WithSuffix("Loading")
 	lines := s.Render(20, 1)
 	if len(lines) != 1 || lines[0] != "* Loading" {
 		t.Fatalf("got %#v, want [\"* Loading\"]", lines)
 	}
 }
 
-func TestSpinnerRenderWithTextClipsToWidth(t *testing.T) {
-	s := NewSpinner().WithFrames("*").WithText("Loading")
+func TestSpinnerRenderWithSuffixClipsToWidth(t *testing.T) {
+	s := NewSpinner().WithFrames("*").WithSuffix("Loading")
 	lines := s.Render(5, 1)
 	if len(lines) != 1 || lines[0] != "* Loa" {
 		t.Fatalf("got %#v, want [\"* Loa\"]", lines)
 	}
 }
 
-func TestSpinnerPreferredWidthWithText(t *testing.T) {
-	s := NewSpinner().WithFrames("a", "abc").WithText("Loading")
+func TestSpinnerPreferredWidthWithSuffix(t *testing.T) {
+	s := NewSpinner().WithFrames("a", "abc").WithSuffix("Loading")
 	// widest frame (3) + " " (1) + "Loading" (7) = 11
 	if w := s.PreferredWidth(); w != 11 {
 		t.Fatalf("PreferredWidth = %d, want 11", w)
+	}
+}
+
+func TestSpinnerWithPrefix(t *testing.T) {
+	s := NewSpinner()
+	same := s.WithPrefix("Status:")
+	if same != s {
+		t.Fatal("WithPrefix should return the same *Spinner for chaining")
+	}
+	if s.Prefix() != "Status:" {
+		t.Fatalf("Prefix() = %q, want %q", s.Prefix(), "Status:")
+	}
+}
+
+func TestSpinnerRenderWithPrefix(t *testing.T) {
+	s := NewSpinner().WithFrames("*").WithPrefix("Status:")
+	lines := s.Render(20, 1)
+	if len(lines) != 1 || lines[0] != "Status: *" {
+		t.Fatalf("got %#v, want [\"Status: *\"]", lines)
+	}
+}
+
+func TestSpinnerRenderWithPrefixClipsToWidth(t *testing.T) {
+	s := NewSpinner().WithFrames("*").WithPrefix("Status:")
+	lines := s.Render(5, 1)
+	if len(lines) != 1 || lines[0] != "Statu" {
+		t.Fatalf("got %#v, want [\"Statu\"]", lines)
+	}
+}
+
+func TestSpinnerRenderWithPrefixAndSuffix(t *testing.T) {
+	s := NewSpinner().WithFrames("*").WithPrefix("Status:").WithSuffix("Loading")
+	lines := s.Render(30, 1)
+	if len(lines) != 1 || lines[0] != "Status: * Loading" {
+		t.Fatalf("got %#v, want [\"Status: * Loading\"]", lines)
+	}
+}
+
+func TestSpinnerPreferredWidthWithPrefixAndSuffix(t *testing.T) {
+	s := NewSpinner().WithFrames("a", "abc").WithPrefix("Status:").WithSuffix("Loading")
+	// "Status:" (7) + " " (1) + widest frame (3) + " " (1) + "Loading" (7) = 19
+	if w := s.PreferredWidth(); w != 19 {
+		t.Fatalf("PreferredWidth = %d, want 19", w)
+	}
+}
+
+func TestSpinnerRenderWithStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	s := NewSpinner().WithFrames("*").WithStyle(NewStyle().WithForeground(ColorRed))
+	lines := s.Render(5, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled frame to contain an SGR sequence, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 1 {
+		t.Fatalf("StringWidth = %d, want 1", w)
+	}
+}
+
+func TestSpinnerRenderWithPrefixStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	s := NewSpinner().WithFrames("*").WithPrefix("Status:").WithPrefixStyle(NewStyle().WithForeground(ColorRed))
+	lines := s.Render(20, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled prefix to contain an SGR sequence, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 9 {
+		t.Fatalf("StringWidth = %d, want 9", w)
+	}
+}
+
+func TestSpinnerRenderWithSuffixStyle(t *testing.T) {
+	prev := GetColorLevel()
+	SetColorLevel(ColorModeTrue)
+	defer SetColorLevel(prev)
+
+	s := NewSpinner().WithFrames("*").WithSuffix("Loading").WithSuffixStyle(NewStyle().WithForeground(ColorRed))
+	lines := s.Render(20, 1)
+	if !strings.Contains(lines[0], "\x1b[") {
+		t.Fatalf("expected styled suffix to contain an SGR sequence, got %q", lines[0])
+	}
+	if w := ui.StringWidth(lines[0]); w != 9 {
+		t.Fatalf("StringWidth = %d, want 9", w)
+	}
+}
+
+func TestSpinnerWithoutStyleRemovesFrameStyleOnly(t *testing.T) {
+	s := NewSpinner().WithStyle(NewStyle().WithForeground(ColorRed))
+	s.WithoutStyle()
+	if s.Style() != nil {
+		t.Fatalf("Style() = %v, want nil", s.Style())
+	}
+}
+
+func TestSpinnerWithoutPrefixStyle(t *testing.T) {
+	s := NewSpinner().WithPrefixStyle(NewStyle().WithForeground(ColorRed))
+	s.WithoutPrefixStyle()
+	if s.PrefixStyle() != nil {
+		t.Fatalf("PrefixStyle() = %v, want nil", s.PrefixStyle())
+	}
+}
+
+func TestSpinnerWithoutSuffixStyle(t *testing.T) {
+	s := NewSpinner().WithSuffixStyle(NewStyle().WithForeground(ColorRed))
+	s.WithoutSuffixStyle()
+	if s.SuffixStyle() != nil {
+		t.Fatalf("SuffixStyle() = %v, want nil", s.SuffixStyle())
 	}
 }
 
