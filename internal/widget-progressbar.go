@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultProgressBarWidth is used until WithWidth is called. It's large
@@ -231,10 +229,10 @@ func (p *ProgressBar) WithoutEmptyStyle() *ProgressBar {
 func (p *ProgressBar) PreferredWidth() int {
 	w := p.width
 	if p.prefix != "" {
-		w += ui.StringWidth(p.prefix)
+		w += StringWidth(p.prefix)
 	}
 	if p.suffix != "" {
-		w += ui.StringWidth(p.suffix)
+		w += StringWidth(p.suffix)
 	}
 	if p.showPercent {
 		w += 5 // " " + "100%"
@@ -263,10 +261,10 @@ func (p *ProgressBar) Render(width, height int) []string {
 
 	reserved := 0
 	if p.prefix != "" {
-		reserved += ui.StringWidth(p.prefix)
+		reserved += StringWidth(p.prefix)
 	}
 	if p.suffix != "" {
-		reserved += ui.StringWidth(p.suffix)
+		reserved += StringWidth(p.suffix)
 	}
 	if p.showPercent {
 		reserved += 5 // " " + "100%"
@@ -311,5 +309,5 @@ func (p *ProgressBar) Render(width, height int) []string {
 		line.WriteString(percent)
 	}
 
-	return []string{ui.RenderRow(ui.BuildRow(line.String(), width))}
+	return []string{RenderRow(BuildRow(line.String(), width))}
 }

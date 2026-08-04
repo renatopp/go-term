@@ -5,8 +5,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // Event types published on the package-level bus by the stdin reader
@@ -77,11 +75,6 @@ const (
 )
 
 var listenerId = atomic.Uint64{}
-
-// Event is a value flowing through the event loop's queue and the package
-// bus, carrying events from OS signals, external callbacks, timers, and
-// stdin input to be processed by the loop.
-type Event = ui.Event
 
 // SignalEvent wraps an OS signal delivered to the process.
 type SignalEvent struct {

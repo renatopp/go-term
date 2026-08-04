@@ -3,8 +3,6 @@ package term
 import (
 	"context"
 	"time"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultFPS is used when no FPS is configured via WithFPS.
@@ -17,7 +15,7 @@ type Program struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	queue     chan Event
-	root      ui.Component
+	root      Component
 	buffer    *buffer
 	width     int
 	height    int
@@ -28,7 +26,7 @@ type Program struct {
 	tick      time.Duration
 }
 
-func NewProgram(root ui.Component) *Program {
+func NewProgram(root Component) *Program {
 	return &Program{
 		ctx:    context.Background(),
 		cancel: func() {},
@@ -162,11 +160,11 @@ func (p *Program) update(event Event) {
 	p.dispatch(p.root.Update(event))
 }
 
-// dispatch stops the program on a SignalEvent or Ctrl+C. A ui.MultiEvent is
+// dispatch stops the program on a SignalEvent or Ctrl+C. A MultiEvent is
 // unpacked and each of its events is dispatched in turn. A nil event (as
 // returned by Component.Update to suppress default handling) is ignored.
 func (p *Program) dispatch(event Event) {
-	if multi, ok := event.(ui.MultiEvent); ok {
+	if multi, ok := event.(MultiEvent); ok {
 		for _, e := range multi {
 			p.dispatch(e)
 		}

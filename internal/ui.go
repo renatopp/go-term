@@ -1,5 +1,8 @@
-package ui
+package term
 
+// Event is a value flowing through the event loop's queue and the package
+// bus, carrying events from OS signals, external callbacks, timers, and
+// stdin input to be processed by the loop.
 type Event any
 
 // MultiEvent groups several events into one, so an Update method can react

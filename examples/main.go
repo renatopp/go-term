@@ -5,8 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/renatopp/go-term/term"
-	"github.com/renatopp/go-term/term/ui"
+	"github.com/renatopp/go-term"
 )
 
 type Page struct {
@@ -47,7 +46,7 @@ func NewPage() *Page {
 	}
 }
 
-func (p *Page) Update(e ui.Event) ui.Event {
+func (p *Page) Update(e term.Event) term.Event {
 	switch e := e.(type) {
 	case term.KeyEvent:
 		if e.Rune == 'q' {
@@ -68,20 +67,20 @@ func (p *Page) Update(e ui.Event) ui.Event {
 }
 
 func (p *Page) Render(width, height int) []string {
-	items := []*ui.ContainerItem{
-		ui.Item(ui.Row(
-			ui.Item(term.NewLabel("Name")).WithBasisPercent(30),
-			ui.Item(term.NewLabel("Renato")).WithBasisPercent(70),
+	items := []*term.ContainerItem{
+		term.Item(term.Row(
+			term.Item(term.NewLabel("Name")).WithBasisPercent(30),
+			term.Item(term.NewLabel("Renato")).WithBasisPercent(70),
 		)),
-		ui.Item(
+		term.Item(
 			term.NewList("a", "b", "c"),
 		),
 	}
 	for _, c := range p.components {
-		items = append(items, ui.Item(c))
+		items = append(items, term.Item(c))
 	}
 
-	return ui.Column(
+	return term.Column(
 		items...,
 	).Render(width, height)
 }
@@ -94,7 +93,7 @@ func main() {
 		Run()
 }
 
-func print(label ui.Renderable, width, height int) {
+func print(label term.Renderable, width, height int) {
 	lines := label.Render(width, height)
 	fmt.Println("|" + strings.Join(lines, "\n|"))
 	fmt.Println("")
@@ -119,13 +118,13 @@ func print(label ui.Renderable, width, height int) {
 // 	term.MoveCursorToHome()
 
 // 	println("Row layout (justify: space-between, gap: 2):")
-// 	row := ui.NewContainer(ui.DirectionRow).
-// 		WithJustify(ui.JustifySpaceBetween).
+// 	row := term.NewContainer(term.DirectionRow).
+// 		WithJustify(term.JustifySpaceBetween).
 // 		WithGap(2).
 // 		Add(
-// 			ui.NewItem(term.NewLabel("Left")),
-// 			ui.NewItem(term.NewLabel("Center")),
-// 			ui.NewItem(term.NewLabel("Right")),
+// 			term.NewItem(term.NewLabel("Left")),
+// 			term.NewItem(term.NewLabel("Center")),
+// 			term.NewItem(term.NewLabel("Right")),
 // 		)
 // 	w, _, _ := term.GetScreenSize()
 // 	for _, line := range row.Render(w, 1) {
@@ -134,11 +133,11 @@ func print(label ui.Renderable, width, height int) {
 
 // 	println()
 // 	println("Column layout (width 20, height 3):")
-// 	col := ui.NewContainer(ui.DirectionColumn).
+// 	col := term.NewContainer(term.DirectionColumn).
 // 		Add(
-// 			ui.NewItem(term.NewLabel("first")),
-// 			ui.NewItem(term.NewLabel("second, longer")),
-// 			ui.NewItem(term.NewLabel("third")),
+// 			term.NewItem(term.NewLabel("first")),
+// 			term.NewItem(term.NewLabel("second, longer")),
+// 			term.NewItem(term.NewLabel("third")),
 // 		)
 // 	for _, line := range col.Render(20, 3) {
 // 		println("|" + line + "|")

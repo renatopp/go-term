@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // buffer holds the last frame written to a terminal so that Flush can diff
@@ -13,7 +11,7 @@ import (
 type buffer struct {
 	width  int
 	height int
-	rows   [][]ui.Cell
+	rows   [][]Cell
 }
 
 // newBuffer creates a buffer for a terminal of the given size. The first
@@ -37,18 +35,18 @@ func (b *buffer) Resize(width, height int) {
 func (b *buffer) Flush(lines []string, w io.Writer) error {
 	full := b.rows == nil
 
-	rows := make([][]ui.Cell, b.height)
+	rows := make([][]Cell, b.height)
 	for y := range rows {
 		var line string
 		if y < len(lines) {
 			line = lines[y]
 		}
-		rows[y] = ui.BuildRow(line, b.width)
+		rows[y] = BuildRow(line, b.width)
 	}
 
 	var out strings.Builder
 	for y, row := range rows {
-		var old []ui.Cell
+		var old []Cell
 		if !full {
 			old = b.rows[y]
 		}
@@ -66,7 +64,7 @@ func (b *buffer) Flush(lines []string, w io.Writer) error {
 // writeRowDiff writes the changed columns of row y to out, comparing new
 // against old. full forces every column to be treated as changed, which is
 // used for the first Flush after newBuffer/Resize.
-func writeRowDiff(out *strings.Builder, y int, old, new []ui.Cell, full bool) {
+func writeRowDiff(out *strings.Builder, y int, old, new []Cell, full bool) {
 	x := 0
 	for x < len(new) {
 		if !full && x < len(old) && old[x] == new[x] {
@@ -93,7 +91,7 @@ func writeRowDiff(out *strings.Builder, y int, old, new []ui.Cell, full bool) {
 
 // writeRun positions the cursor at row y, column x and writes the run's
 // cells, emitting an SGR sequence only where the active style changes.
-func writeRun(out *strings.Builder, y, x int, run []ui.Cell) {
+func writeRun(out *strings.Builder, y, x int, run []Cell) {
 	fmt.Fprintf(out, "\x1b[%d;%dH", y+1, x+1)
 
 	style := ""

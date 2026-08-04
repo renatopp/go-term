@@ -4,8 +4,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 func TestNewSpinner(t *testing.T) {
@@ -236,7 +234,7 @@ func TestSpinnerRenderWithStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled frame to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 1 {
+	if w := StringWidth(lines[0]); w != 1 {
 		t.Fatalf("StringWidth = %d, want 1", w)
 	}
 }
@@ -251,7 +249,7 @@ func TestSpinnerRenderWithPrefixStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled prefix to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 9 {
+	if w := StringWidth(lines[0]); w != 9 {
 		t.Fatalf("StringWidth = %d, want 9", w)
 	}
 }
@@ -266,7 +264,7 @@ func TestSpinnerRenderWithSuffixStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled suffix to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 9 {
+	if w := StringWidth(lines[0]); w != 9 {
 		t.Fatalf("StringWidth = %d, want 9", w)
 	}
 }

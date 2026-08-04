@@ -2,8 +2,6 @@ package term
 
 import (
 	"strings"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultConfirmYesLabel is the label rendered for the affirmative option
@@ -154,7 +152,7 @@ func (c *Confirm) AsFocused(v bool) *Confirm {
 // PreferredWidth is the combined width of the message and both options, as
 // currently rendered.
 func (c *Confirm) PreferredWidth() int {
-	return ui.StringWidth(c.message) + 1 + ui.StringWidth(c.yesText()) + 2 + ui.StringWidth(c.noText())
+	return StringWidth(c.message) + 1 + StringWidth(c.yesText()) + 2 + StringWidth(c.noText())
 }
 
 func (c *Confirm) PreferredHeight(width int) int {

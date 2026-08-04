@@ -2,8 +2,6 @@ package term
 
 import (
 	"strings"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultSelectMarker is the text rendered before the highlighted option
@@ -155,9 +153,9 @@ func (s *Select) AsFocused(v bool) *Select {
 func (s *Select) PreferredWidth() int {
 	w := 0
 	for _, o := range s.options {
-		w = max(w, ui.StringWidth(o))
+		w = max(w, StringWidth(o))
 	}
-	return ui.StringWidth(s.marker) + w
+	return StringWidth(s.marker) + w
 }
 
 // PreferredHeight is the number of options, since each renders as a single
@@ -187,7 +185,7 @@ func (s *Select) Render(width, height int) []string {
 
 	s.scrollIntoView(height)
 
-	indent := strings.Repeat(" ", ui.StringWidth(s.marker))
+	indent := strings.Repeat(" ", StringWidth(s.marker))
 	end := min(len(s.options), s.offset+height)
 
 	var lines []string

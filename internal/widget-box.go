@@ -1,9 +1,5 @@
 package term
 
-import (
-	"github.com/renatopp/go-term/term/ui"
-)
-
 // BorderStyle defines the characters used to draw a Box's border. The zero
 // value draws no border at all.
 type BorderStyle struct {
@@ -49,7 +45,7 @@ func (b BorderStyle) hasBorder() bool {
 // Box draws an optional border around a single child, with padding between
 // the border and the child and margin outside the border.
 type Box struct {
-	child    ui.Renderable
+	child    Renderable
 	border   BorderStyle
 	style    *Style
 	paddingX int
@@ -58,15 +54,15 @@ type Box struct {
 	marginY  int
 }
 
-func NewBox(child ui.Renderable) *Box {
+func NewBox(child Renderable) *Box {
 	return &Box{child: child}
 }
 
-func (b *Box) Child() ui.Renderable {
+func (b *Box) Child() Renderable {
 	return b.child
 }
 
-func (b *Box) WithChild(child ui.Renderable) *Box {
+func (b *Box) WithChild(child Renderable) *Box {
 	b.child = child
 	return b
 }
@@ -132,7 +128,7 @@ func (b *Box) WithMarginXY(x, y int) *Box {
 
 func (b *Box) PreferredWidth() int {
 	w := 0
-	if s, ok := b.child.(ui.Sizeable); ok {
+	if s, ok := b.child.(Sizeable); ok {
 		w = s.PreferredWidth()
 	}
 	return w + 2*b.paddingX + 2*b.marginX + 2*b.borderWidth()
@@ -141,14 +137,14 @@ func (b *Box) PreferredWidth() int {
 func (b *Box) PreferredHeight(width int) int {
 	inner := max(0, width-2*b.paddingX-2*b.marginX-2*b.borderWidth())
 	h := 0
-	if s, ok := b.child.(ui.Sizeable); ok {
+	if s, ok := b.child.(Sizeable); ok {
 		h = s.PreferredHeight(inner)
 	}
 	return h + 2*b.paddingY + 2*b.marginY + 2*b.borderWidth()
 }
 
 func (b *Box) Update(e Event) Event {
-	if u, ok := b.child.(ui.Updatable); ok {
+	if u, ok := b.child.(Updatable); ok {
 		return u.Update(e)
 	}
 	return e
@@ -176,11 +172,11 @@ func (b *Box) Render(width, height int) []string {
 		childLines = b.child.Render(contentWidth, contentHeight)
 	}
 
-	grid := make([][]ui.Cell, height)
+	grid := make([][]Cell, height)
 	for y := range grid {
-		grid[y] = make([]ui.Cell, width)
+		grid[y] = make([]Cell, width)
 		for x := range grid[y] {
-			grid[y][x] = ui.Cell{Text: " ", Width: 1}
+			grid[y][x] = Cell{Text: " ", Width: 1}
 		}
 	}
 
@@ -193,7 +189,7 @@ func (b *Box) Render(width, height int) []string {
 		if dy >= contentHeight || y < 0 || y >= height {
 			continue
 		}
-		for dx, cl := range ui.BuildRow(line, contentWidth) {
+		for dx, cl := range BuildRow(line, contentWidth) {
 			x := left + dx
 			if x < 0 || x >= width {
 				continue
@@ -201,7 +197,7 @@ func (b *Box) Render(width, height int) []string {
 			// A wide character whose placeholder would be clipped by the
 			// box's edge can't be drawn whole; blank it instead.
 			if cl.Width == 2 && x+1 >= width {
-				cl = ui.Cell{Text: " ", Width: 1, Style: cl.Style}
+				cl = Cell{Text: " ", Width: 1, Style: cl.Style}
 			}
 			grid[y][x] = cl
 		}
@@ -209,7 +205,7 @@ func (b *Box) Render(width, height int) []string {
 
 	out := make([]string, height)
 	for y, row := range grid {
-		out[y] = ui.RenderRow(row)
+		out[y] = RenderRow(row)
 	}
 	return out
 }
@@ -225,7 +221,7 @@ func (b *Box) borderWidth() int {
 
 // renderBorder draws the box's border edges and corners onto grid at the
 // position determined by the box's margin.
-func (b *Box) renderBorder(grid [][]ui.Cell, width, height int) {
+func (b *Box) renderBorder(grid [][]Cell, width, height int) {
 	x0 := b.marginX
 	x1 := width - 1 - b.marginX
 	y0 := b.marginY
@@ -254,16 +250,16 @@ func (b *Box) renderBorder(grid [][]ui.Cell, width, height int) {
 // empty ch (an unset border character) renders as a blank space so column
 // alignment isn't disturbed. If the box has a style, it's applied to the
 // character.
-func (b *Box) setCell(grid [][]ui.Cell, x, y int, ch string) {
+func (b *Box) setCell(grid [][]Cell, x, y int, ch string) {
 	if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[y]) {
 		return
 	}
 	if ch == "" {
 		ch = " "
 	}
-	cell := ui.Cell{Text: ch, Width: 1}
+	cell := Cell{Text: ch, Width: 1}
 	if b.style != nil {
-		cell = ui.BuildRow(b.style.Render(ch), 1)[0]
+		cell = BuildRow(b.style.Render(ch), 1)[0]
 	}
 	grid[y][x] = cell
 }

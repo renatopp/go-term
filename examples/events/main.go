@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/renatopp/go-term/term"
+	"github.com/renatopp/go-term"
 )
 
 func main() {

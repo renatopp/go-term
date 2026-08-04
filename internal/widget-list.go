@@ -2,8 +2,6 @@ package term
 
 import (
 	"strings"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultBullet is the bullet character used by a List until WithBullet is
@@ -114,7 +112,7 @@ func (l *List) PreferredWidth() int {
 	prefix := l.prefixWidth()
 	w := 0
 	for _, item := range l.items {
-		w = max(w, prefix+ui.StringWidth(item))
+		w = max(w, prefix+StringWidth(item))
 	}
 	return w + l.paddingLeft
 }
@@ -181,7 +179,7 @@ func ellipsizeListLine(ln *listLine, width int) {
 // prefixWidth returns the number of columns occupied by the bullet plus the
 // single space separating it from an item's text.
 func (l *List) prefixWidth() int {
-	return ui.StringWidth(l.bullet) + 1
+	return StringWidth(l.bullet) + 1
 }
 
 // wrapItem wraps a single item's text into lines of at most width columns,

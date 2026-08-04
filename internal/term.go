@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/renatopp/go-term/term/ui"
 	"golang.org/x/term"
 )
 
@@ -71,7 +70,6 @@ const (
 // State is an alias for term.State, representing the terminal state for raw
 // mode and restoration.
 type State = term.State
-type Component = ui.Component
 
 func init() {
 	colorLevel = detectColorMode()

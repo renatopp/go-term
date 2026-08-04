@@ -3,8 +3,6 @@ package term
 import (
 	"strings"
 	"testing"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 func TestNewBox(t *testing.T) {
@@ -118,10 +116,10 @@ func TestBoxRenderWithStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled border to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 4 {
+	if w := StringWidth(lines[0]); w != 4 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 4", w)
 	}
-	if w := ui.StringWidth(lines[1]); w != 4 {
+	if w := StringWidth(lines[1]); w != 4 {
 		t.Fatalf("StringWidth(lines[1]) = %d, want 4", w)
 	}
 }

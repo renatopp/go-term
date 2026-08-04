@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 func newTestProgram() *Program {
@@ -49,7 +47,7 @@ func TestDispatchIgnoresNilEvent(t *testing.T) {
 
 func TestDispatchUnwrapsMultiEvent(t *testing.T) {
 	p := newTestProgram()
-	p.dispatch(ui.Events(KeyEvent{Rune: 'x'}, SignalEvent{}))
+	p.dispatch(Events(KeyEvent{Rune: 'x'}, SignalEvent{}))
 	if !p.stopped() {
 		t.Fatal("expected a SignalEvent nested in a MultiEvent to stop the program")
 	}

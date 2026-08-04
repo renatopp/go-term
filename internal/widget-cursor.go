@@ -3,8 +3,6 @@ package term
 import (
 	"strings"
 	"time"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultCursorChar is the character used by a Cursor until WithChar is
@@ -133,7 +131,7 @@ func (c *Cursor) Tick(now time.Time) *Cursor {
 }
 
 func (c *Cursor) PreferredWidth() int {
-	return ui.StringWidth(c.char)
+	return StringWidth(c.char)
 }
 
 func (c *Cursor) PreferredHeight(width int) int {
@@ -158,7 +156,7 @@ func (c *Cursor) Render(width, height int) []string {
 
 	text := c.char
 	if !c.Showing() {
-		text = strings.Repeat(" ", ui.StringWidth(c.char))
+		text = strings.Repeat(" ", StringWidth(c.char))
 	}
 
 	runes := []rune(text)

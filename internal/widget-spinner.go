@@ -3,8 +3,6 @@ package term
 import (
 	"strings"
 	"time"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 // DefaultSpinnerFrames are the frames used by a Spinner until WithFrames is
@@ -198,13 +196,13 @@ func (s *Spinner) WithFrameRate(d time.Duration) *Spinner {
 func (s *Spinner) PreferredWidth() int {
 	w := 0
 	for _, f := range s.frames {
-		w = max(w, ui.StringWidth(f))
+		w = max(w, StringWidth(f))
 	}
 	if s.prefix != "" {
-		w += ui.StringWidth(s.prefix) + 1
+		w += StringWidth(s.prefix) + 1
 	}
 	if s.suffix != "" {
-		w += ui.StringWidth(s.suffix) + 1
+		w += StringWidth(s.suffix) + 1
 	}
 	return w
 }

@@ -3,8 +3,6 @@ package term
 import (
 	"strings"
 	"testing"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 func TestNewProgressBar(t *testing.T) {
@@ -354,7 +352,7 @@ func TestProgressBarRenderWithStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled fill to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 4 {
+	if w := StringWidth(lines[0]); w != 4 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 4", w)
 	}
 }
@@ -369,7 +367,7 @@ func TestProgressBarRenderWithEmptyStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled track to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 4 {
+	if w := StringWidth(lines[0]); w != 4 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 4", w)
 	}
 }
@@ -384,7 +382,7 @@ func TestProgressBarRenderWithPrefixStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled prefix to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 9 {
+	if w := StringWidth(lines[0]); w != 9 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 9", w)
 	}
 }
@@ -399,7 +397,7 @@ func TestProgressBarRenderWithSuffixStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled suffix to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 9 {
+	if w := StringWidth(lines[0]); w != 9 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 9", w)
 	}
 }
@@ -414,7 +412,7 @@ func TestProgressBarRenderWithPercentStyle(t *testing.T) {
 	if !strings.Contains(lines[0], "\x1b[") {
 		t.Fatalf("expected styled percent to contain an SGR sequence, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 9 {
+	if w := StringWidth(lines[0]); w != 9 {
 		t.Fatalf("StringWidth(lines[0]) = %d, want 9", w)
 	}
 }

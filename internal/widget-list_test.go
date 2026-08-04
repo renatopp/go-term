@@ -3,8 +3,6 @@ package term
 import (
 	"strings"
 	"testing"
-
-	"github.com/renatopp/go-term/term/ui"
 )
 
 func TestNewList(t *testing.T) {
@@ -185,7 +183,7 @@ func TestListRenderWithStyleStylesTextOnly(t *testing.T) {
 	if !strings.HasPrefix(lines[0], "- ") {
 		t.Fatalf("expected bullet to remain unstyled, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 5 {
+	if w := StringWidth(lines[0]); w != 5 {
 		t.Fatalf("StringWidth = %d, want 5", w)
 	}
 }
@@ -203,7 +201,7 @@ func TestListRenderWithBulletStyleStylesBulletOnly(t *testing.T) {
 	if !strings.HasSuffix(lines[0], " one") {
 		t.Fatalf("expected text to remain unstyled, got %q", lines[0])
 	}
-	if w := ui.StringWidth(lines[0]); w != 5 {
+	if w := StringWidth(lines[0]); w != 5 {
 		t.Fatalf("StringWidth = %d, want 5", w)
 	}
 }
